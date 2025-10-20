@@ -3,11 +3,10 @@ const jwt = require('jsonwebtoken');
 
 //GENERATE JWT TOKEN
 const generateToken = (id) => {
-    jwt.sign({ id }, process.env.JWT_SECRET, {
+    return jwt.sign({ id }, process.env.JWT_SECRET, {
         expiresIn: '30d',
     })
 }
-
 
 // @desc    Register new user
 // @route   POST /api/auth/register
@@ -57,6 +56,7 @@ const login = async (req, res) => {
         const { email, password } = req.body;
         const user = await User.findOne({ email });
         if (user && (await user.matchPassword(password))) {
+            const token = generateToken(user._id);
             res.json({
                 success: true,
                 data: {
@@ -64,7 +64,7 @@ const login = async (req, res) => {
                     username: user.username,
                     email: user.email,
                     role: user.role,
-                    token: generateToken(user._id),
+                    token: token
                 }
             });
         } else {

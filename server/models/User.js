@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
     username:{
@@ -30,7 +30,11 @@ const userSchema = new mongoose.Schema({
     isActive:{
         type: Boolean,
         default: true
-    },}, {
+    },
+    employeeId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Employee'
+    },},{
         timestamps: true
 });
 
