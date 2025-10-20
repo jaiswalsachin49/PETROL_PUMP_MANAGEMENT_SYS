@@ -47,7 +47,7 @@ const pumpSchema = new mongoose.Schema({
         enum: ['Active', 'Inactive', 'Under Maintenance'],
         default: 'Active'
     },
-    lastCalibirationDate:{
+    lastCalibrationDate:{
         type: Date,
     },
     locationDescription:{

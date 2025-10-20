@@ -139,7 +139,7 @@ const updateDipReading = async (req, res) => {
         }
         await tank.save()
         res.json({
-            succes: true,
+            success: true,
             data: tank,
         })
     } catch (error) {
