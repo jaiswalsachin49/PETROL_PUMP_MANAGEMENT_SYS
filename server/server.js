@@ -20,6 +20,8 @@ app.use(morgan('dev'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/tanks', require('./routes/tanks'));
 app.use('/api/pumps', require('./routes/pump'));
+app.use('/api/customers', require('./routes/customers'));
+app.use('/api/employees', require('./routes/employees'));
 
 const PORT = process.env.PORT || 8080;
 

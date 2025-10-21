@@ -59,7 +59,7 @@ const employeeSchema = new mongoose.Schema({
         expiryDate: Date,
     }],
     attendance:[{
-        date: Date,
+        date: { type: Date, default: Date.now },
         shiftId: { type: mongoose.Schema.Types.ObjectId, ref: 'Shift' },
         status: { type: String, enum: ['Present','Absent','Leave','Holiday']},
         hoursWorked: Number
