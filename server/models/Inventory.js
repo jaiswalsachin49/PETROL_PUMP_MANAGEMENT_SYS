@@ -79,4 +79,12 @@ inventorySchema.index({ itemId: 1 });
 inventorySchema.index({ category: 1 });
 inventorySchema.index({ quantity: 1 });
 
+inventorySchema.pre('save', async function (next) {
+    if (!this.itemId) {
+        const count = await mongoose.model('Inventory').countDocuments();
+        this.itemId = `INV${String(count + 1).padStart(5, '0')}`;
+    }
+    next();
+});
+
 module.exports = mongoose.model('Inventory', inventorySchema);
