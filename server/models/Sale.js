@@ -76,7 +76,6 @@ const saleSchema = new mongoose.Schema({
     timestamps: true,
 });
 
-// Auto-generate saleId and calculate totalAmount
 saleSchema.pre('save', async function (next) {
     if (!this.saleId) {
         const count = await mongoose.model('Sale').countDocuments();
@@ -84,13 +83,12 @@ saleSchema.pre('save', async function (next) {
         this.saleId = `SALE${dateStr}${String(count + 1).padStart(4, '0')}`;
     }
 
-    // Calculate total amount
     this.totalAmount = this.quantity * this.pricePerLiter;
 
     next();
 });
 
-// Indexes
+
 saleSchema.index({ date: -1 });
 saleSchema.index({ saleId: 1 });
 saleSchema.index({ customerId: 1 });
