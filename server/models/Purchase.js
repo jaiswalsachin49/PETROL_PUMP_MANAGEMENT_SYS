@@ -35,7 +35,6 @@ const purchaseSchema = new mongoose.Schema({
     }],
     totalAmount: {
         type: Number,
-        required: true,
         min: 0,
     },
     paymentStatus: {
@@ -88,5 +87,23 @@ purchaseSchema.index({ date: -1 });
 purchaseSchema.index({ purchaseId: 1 });
 purchaseSchema.index({ supplierId: 1 });
 purchaseSchema.index({ paymentStatus: 1 });
+
+purchaseSchema.pre('save', async function (next) {
+    if (!this.purchaseId) {
+        const count = await mongoose.model('Purchase').countDocuments();
+        const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        this.purchaseId = `PUR${dateStr}${String(count + 1).padStart(4, '0')}`;
+    }
+
+    let total = 0;
+    this.items.forEach(item => {
+        item.totalPrice = item.quantity * item.unitPrice;
+        total += item.totalPrice;
+    });
+    this.totalAmount = total;
+
+    next();
+});
+
 
 module.exports = mongoose.model('Purchase', purchaseSchema);

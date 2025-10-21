@@ -103,7 +103,7 @@ const deleteInventoryItem = async(req,res)=>{
                 message: 'Inventory item not found'
             })
         }
-        await item.remove()
+        await item.deleteOne()
         res.json({
             success: true,
             message: 'Inventory item deleted successfully'
