@@ -3,7 +3,6 @@ const mongoose = require('mongoose');
 const shiftSchema = new mongoose.Schema({
     shiftNumber: {
         type: Number,
-        required: true,
     },
     date: {
         type: Date,
@@ -90,5 +89,13 @@ const shiftSchema = new mongoose.Schema({
 shiftSchema.index({ date: -1 });
 shiftSchema.index({ status: 1 });
 shiftSchema.index({ shiftNumber: 1, date: 1 });
+
+shiftSchema.pre('save', async function (next) {
+    if (!this.shiftNumber) {
+        const lastShift = await mongoose.model('Shift').findOne().sort({ shiftNumber: -1 });
+        this.shiftNumber = lastShift ? lastShift.shiftNumber + 1 : 1;
+    }
+    next();
+});
 
 module.exports = mongoose.model('Shift', shiftSchema);

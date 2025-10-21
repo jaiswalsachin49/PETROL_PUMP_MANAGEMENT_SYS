@@ -23,6 +23,7 @@ app.use('/api/pumps', require('./routes/pump'));
 app.use('/api/customers', require('./routes/customers'));
 app.use('/api/employees', require('./routes/employees'));
 app.use('/api/sales', require('./routes/sales'));
+app.use('/api/shifts', require('./routes/shifts'));
 
 const PORT = process.env.PORT || 8080;
 
