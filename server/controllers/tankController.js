@@ -172,6 +172,12 @@ const getLowFuelTanks = async (req, res) => {
     }
 }
 
+
+// @desc    Get tank with full details including supplier and last refill
+// @route   GET /api/tanks/:id/details
+// @access  Private
+
+
 module.exports = {
     getTanks,
     getTank,

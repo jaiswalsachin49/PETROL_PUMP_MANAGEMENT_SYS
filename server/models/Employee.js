@@ -1,78 +1,92 @@
 const mongoose = require('mongoose');
 
 const employeeSchema = new mongoose.Schema({
-    employeeId:{
+    employeeId: {
         type: String,
-        required: [true, 'Employee ID is required'],
         unique: true,
         trim: true,
         uppercase: true
     },
-    name:{
+    name: {
         type: String,
         required: [true, 'Employee name is required'],
         trim: true
     },
-    email:{
+    email: {
         type: String,
-        unique: true,
+        sparse: true,
         trim: true,
         lowercase: true,
     },
-    phone:{
+    phone: {
         type: String,
         trim: true,
         required: [true, 'Phone number is required']
     },
-    position:{
+    position: {
         type: String,
-        enum: ['pump_attendant','manager','accountant'],
+        enum: ['pump_attendant', 'manager', 'accountant'],
         required: [true, 'Position is required']
     },
-    salary:{
+    salary: {
         type: Number,
         min: [0, 'Salary must be a positive number'],
     },
-    joiningDate:{
+    joiningDate: {
         type: Date,
         default: Date.now
     },
-    address:{
+    address: {
         street: String,
         city: String,
         state: String,
         zipCode: String,
     },
-    emergencyContact:{
+    emergencyContact: {
         name: String,
         phone: String,
         relationship: String
     },
-    documents:[{
-        type:{
+    documents: [{
+        type: {
             type: String,
-            enum: ['ADHAAR','DRIVING LICENSE','PAN'],
+            enum: ['ADHAAR', 'DRIVING LICENSE', 'PAN'],
             required: [true, 'Document type is required']
         },
         documentNumber: String,
         issueDate: Date,
         expiryDate: Date,
     }],
-    attendance:[{
+    attendance: [{
         date: { type: Date, default: Date.now },
         shiftId: { type: mongoose.Schema.Types.ObjectId, ref: 'Shift' },
-        status: { type: String, enum: ['Present','Absent','Leave','Holiday']},
+        status: { type: String, enum: ['Present', 'Absent', 'Leave', 'Holiday'] },
         hoursWorked: Number
     }],
-    isActive:{
+    isActive: {
         type: Boolean,
         default: true
     }
-},{
+}, {
     timestamps: true
 })
+
+employeeSchema.pre('save', async function (next) {
+    if (!this.employeeId) {
+        const lastEmp = await mongoose.model('Employee').findOne().sort({ createdAt: -1 });
+
+        let nextNumber = 1;
+        if (lastEmp && lastEmp.employeeId) {
+            const lastNum = parseInt(lastEmp.employeeId.replace('EMP', ''), 10);
+            if (!isNaN(lastNum)) nextNumber = lastNum + 1;
+        }
+
+        this.employeeId = `EMP${String(nextNumber).padStart(5, '0')}`;
+    }
+    next();
+});
 
 employeeSchema.index({ employeeId: 1 });
 employeeSchema.index({ position: 1 });
 employeeSchema.index({ isActive: 1 });
-module.exports = mongoose.model('Employee',employeeSchema);
+module.exports = mongoose.model('Employee', employeeSchema);

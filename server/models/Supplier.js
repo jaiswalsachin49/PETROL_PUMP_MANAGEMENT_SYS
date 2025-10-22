@@ -33,6 +33,7 @@ const supplierSchema = new mongoose.Schema({
   supplierType: {
     type: String,
     enum: ['fuel', 'lubricant', 'accessories', 'general'],
+    default: "fuel",
     required: true,
   },
   gstNumber: {

@@ -13,6 +13,7 @@ const saleSchema = new mongoose.Schema({
     shiftId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Shift',
+        required: [true, 'Shift reference is required'],
     },
     pumpId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -51,6 +52,9 @@ const saleSchema = new mongoose.Schema({
     customerId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Customer',
+        required: function () {
+        return this.saleType === 'Credit' || this.saleType === 'fleet';
+        },
     },
     vehicleNumber: {
         type: String,
