@@ -6,6 +6,7 @@ const {
     createEmployee,
     updateEmployee,
     deleteEmployee,
+    getEmployeeSummary
 } = require('../controllers/employeeController');
 
 const router = express.Router();
@@ -18,5 +19,9 @@ router.route('/:id')
     .get(protect, getEmployee)
     .put(protect, authorize('admin', 'manager'), updateEmployee)
     .delete(protect, authorize('admin'), deleteEmployee);
+    
+router.route('/summary')
+    .get(protect,getEmployeeSummary)
+
 
 module.exports = router;

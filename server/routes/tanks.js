@@ -1,10 +1,11 @@
 const express = require('express');
-const { getTanks, getTank, createTank, updatedTank, deleteTank, updateDipReading, getLowFuelTanks } = require('../controllers/tankController');
+const { getTanks, getTank, createTank, updatedTank, deleteTank, updateDipReading, getLowFuelTanks, getTankDetails } = require('../controllers/tankController');
 const { protect, authorize } = require('../middlewares/auth');
 
 const router = express.Router();
 
 router.route('/alerts/low-fuel').get(protect, getLowFuelTanks);
+
 
 router.route('/')
     .get(protect, getTanks)
@@ -17,5 +18,8 @@ router.route('/:id')
 
 router.route('/:id/dip-reading')
     .put(protect, updateDipReading)
+
+router.route('/:id/details') 
+    .get(protect, getTankDetails)
 
 module.exports = router;

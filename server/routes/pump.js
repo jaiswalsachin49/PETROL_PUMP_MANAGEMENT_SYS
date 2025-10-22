@@ -10,6 +10,7 @@ const {
     assignNozzleEmployee,
     getPumpsByTank,
     getPumpsByStatus,
+    getPumpsWithSales
 } = require('../controllers/pumpController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -31,12 +32,15 @@ router.route('/:id/nozzles/:nozzleId')
     .put(protect, updateNozzleReading);
 
 router.route('/:id/nozzles/:nozzleId/assign')
-    .put(protect, authorize('manager','admin'), assignNozzleEmployee);
+    .put(protect, authorize('manager','admin'), assignNozzleEmployee)
 
 router.route('/tank/:tankId')
     .get(protect, getPumpsByTank);
 
 router.route('/status/:state')
     .get(protect, getPumpsByStatus);
+
+router.route('/with-sales')
+    .get(protect, getPumpsWithSales)
 
 module.exports = router;

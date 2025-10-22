@@ -5,7 +5,8 @@ const {
     getPurchases,
     createPurchase,
     updatePurchase,
-    deletePurchase
+    deletePurchase,
+    getRecentDeliveries
 } = require('../controllers/purchaseController')
 
 const router = express.Router()
@@ -18,5 +19,8 @@ router.route('/:id')
     .get(protect, getPurchase)
     .put(protect, authorize('admin','manager'), updatePurchase)
     .delete(protect, authorize('admin'), deletePurchase)
+
+router.route('/recent')
+    .get(protect,getRecentDeliveries)
 
 module.exports = router

@@ -124,7 +124,7 @@ const deletePump = async (req, res) => {
 // @access  Private (Admin/Manager)
 const addNozzle = async (req, res) => {
     try {
-        const { nozzleId, assignedEmployee,fueltype } = req.body
+        const { nozzleId, assignedEmployee, fueltype } = req.body
         const pump = await Pump.findById(req.params.id)
         if (!pump) {
             return res.status(404).json({
@@ -218,6 +218,51 @@ const getPumpsByStatus = async (req, res) => {
     }
 };
 
+
+// @desc    Get pumps with today's sales aggregated
+// @route   GET /api/pumps/with-sales
+// @access  Private
+const getPumpsWithSales = async (req, res) => {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const pumps = await Pump.find().populate('tankId', 'fuelType').lean();
+
+        const pumpSales = await Sale.aggregate([
+            { $match: { date: { $gte: today, $lt: tomorrow } } },
+            {
+                $group: {
+                    _id: '$pumpId',
+                    todaySales: { $sum: '$totalAmount' }
+                }
+            }
+        ]);
+
+        const salesMap = {};
+        pumpSales.forEach(s => {
+            salesMap[s._id.toString()] = s.todaySales;
+        });
+
+        const response = pumps.map(pump => ({
+            id: pump._id,
+            name: pump.pumpNumber,
+            type: pump.tankId?.fuelType || 'Unknown',
+            tank: `Tank ${pump.tankId?.tankNumber || 'N/A'}`,
+            status: pump.status === 'operational' ? 'Active' : 'Maintenance',
+            todaySales: salesMap[pump._id.toString()] || 0,
+            color: pump.status === 'operational' ? 'emerald' : 'orange'
+        }));
+
+        res.json({ success: true, data: response });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+
 module.exports = {
     getPumps,
     getPump,
@@ -229,4 +274,5 @@ module.exports = {
     assignNozzleEmployee,
     getPumpsByTank,
     getPumpsByStatus,
+    getPumpsWithSales
 };

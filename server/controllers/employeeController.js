@@ -111,10 +111,57 @@ const deleteEmployee = async (req, res) => {
     }
 };
 
+// @desc    Get employee summary statistics
+// @route   GET /api/employees/summary
+// @access  Private
+const getEmployeeSummary = async (req, res) => {
+    try {
+        const total = await Employee.countDocuments()
+        const today = new Date().toISOString().split('T')[0]
+
+        const activeToday = await Employee.countDocuments({
+            'attendance.date': { $gte: new Date(today) },
+            'attendance.status': 'present'
+        });
+
+        const onLeave = await Employee.countDocuments({
+            'attendance.date': { $gte: new Date(today) },
+            'attendance.status': 'leave'
+        });
+
+        const byRole = await Employee.aggregate([
+            { $group: { _id: '$position', count: { $sum: 1 } } }
+        ]);
+
+        const roleMap = {};
+        byRole.forEach(r => {
+            roleMap[r._id] = r.count;
+        });
+
+        res.json({
+            success: true,
+            data: {
+                total,
+                activeToday,
+                onLeave,
+                pumpOperators: roleMap['pump_attendant'] || 0,
+                byRole: roleMap
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        })
+    }
+}
+
 module.exports = {
     getEmployees,
     getEmployee,
     createEmployee,
     updateEmployee,
-    deleteEmployee
+    deleteEmployee,
+    getEmployeeSummary
 };
