@@ -5,7 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-// import Tanks from './pages/Tanks';
+import Tanks from './pages/Tanks';
 // import Pumps from './pages/Pumps';
 // import Employees from './pages/Employees';
 // import Customers from './pages/Customers';
@@ -34,12 +34,12 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/*" element={
-            <ProtectedRoute>
+            // <ProtectedRoute>
               <MainLayout>
                 <Routes>
                   <Route path="/" element={<Navigate to="/dashboard" />} />
                   <Route path="/dashboard" element={<Dashboard />} />
-                  {/* <Route path="/tanks" element={<Tanks />} /> */}
+                  <Route path="/tanks" element={<Tanks />} />
                   {/* <Route path="/pumps" element={<Pumps />} /> */}
                   {/* <Route path="/employees" element={<Employees />} /> */}
                   {/* <Route path="/customers" element={<Customers />} /> */}
@@ -48,7 +48,7 @@ function App() {
                   {/* <Route path="/reports" element={<Reports />} /> */}
                 </Routes>
               </MainLayout>
-            </ProtectedRoute>
+            // </ProtectedRoute>
           } />
         </Routes>
       </Router>

@@ -96,17 +96,16 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-lg font-medium shadow-md transition-all duration-300"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2.5 rounded-xl font-medium shadow-md transition-all duration-300"
           >
             {loading ? 'Signing In...' : 'Login'}
           </button>
         </form>
 
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg"> 
-          <p className="text-xs font-medium text-blue-900 mb-2">Demo Credentials:</p> 
-            <div className="space-y-1 text-xs text-blue-700"> 
-              {/* <p><strong>Admin:</strong> admin@fuelflow.com / admin123</p> */} 
-              {/* <p><strong>Manager:</strong> manager@fuelflow.com / manager123</p> */} 
+        <div className="mt-6 p-2 bg-white rounded-xl"> 
+          <p className="text-xs font-medium text-orange-900 mb-2">Demo Credentials:</p> 
+            <div className="space-y-1 text-xs text-orange-700"> 
+              <p><strong>Admin:</strong> sj586997@gmail.com / #Papewali123</p> 
             </div> 
           </div> 
 
