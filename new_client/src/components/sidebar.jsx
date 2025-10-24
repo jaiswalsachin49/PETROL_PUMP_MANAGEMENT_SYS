@@ -25,7 +25,6 @@ export default function Sidebar({ onLogout }) {
         { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, to: "/dashboard" },
         { id: "pumps", label: "Pump Management", icon: Gauge, to: "/pumps", roles: ['admin', 'manager'] },
         { id: "tanks", label: "Tank Management", icon: Droplets, to: "/tanks", roles: ['admin', 'manager'] },
-        { id: "nozzles", label: "Nozzle Management", icon: Fuel, to: "/nozzles", roles: ['admin', 'manager'] },
         { id: "shifts", label: "Shift Management", icon: Clock, to: "/shifts", roles: ['admin', 'manager'] },
         { id: "sales", label: "Sales Records", icon: ShoppingCart, to: "/sales" },
         { id: "employees", label: "Employee Management", icon: Users, to: "/employees", roles: ['admin', 'manager'] },
@@ -34,18 +33,17 @@ export default function Sidebar({ onLogout }) {
         { id: "reports", label: "Reports & Analytics", icon: BarChart3, to: "/reports", roles: ['admin', 'manager', 'accountant'] },
     ];
 
-    // Filter navigation items based on user role
     const filteredNavItems = navItems.filter(item => {
         if (!item.roles) return true;
-        if (!user) return false; // Hide role-restricted items if no user
+        if (!user) return false; 
         return item.roles.includes(user.role);
     });
 
     const navLinkClass = ({ isActive }) =>
-        `flex items-center gap-3 px-4 py-2 rounded-lg text-sm transition-colors duration-200 ${
+        `flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-colors duration-100 ${
             isActive
-                ? "bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md"
-                : "text-slate-700 hover:bg-slate-100"
+                ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-md"
+                : "text-slate-700 hover:bg-gradient-to-r from-orange-100 to-orange-150"
         }`;
 
     const getInitials = (name) => {
@@ -79,18 +77,15 @@ export default function Sidebar({ onLogout }) {
 
     return (
         <aside className="w-72 bg-white border-r border-slate-200 flex flex-col relative min-h-screen">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-purple-500/5 pointer-events-none"></div>
-
-            {/* Header */}
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-orange-600/5 pointer-events-none"></div>
             <div className="p-6 border-b border-slate-200 relative">
                 <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 bg-gradient-to-br from-violet-600 to-purple-600 rounded-xl flex items-center justify-center shadow-md shadow-violet-200">
-                        <Fuel className="w-6 h-6 text-white" />
-                    </div>
+                    {/* <div className="w-11 h-11 bg-gradient-to-br from-violet-700 to-purple-600 rounded-xl flex items-center justify-center shadow-md shadow-violet-200"> */}
+                        <img src="/logo.png" alt="FuelFlow" className="w-12 h-12" />
+                    {/* </div> */}
                     <div>
-                        <h1 className="text-slate-900 font-semibold text-lg flex items-center gap-2">
+                        <h1 className="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent font-semibold text-xl flex items-center gap-2">
                             FuelFlow
-                            <Sparkles className="w-4 h-4 text-violet-600" />
                         </h1>
                         <p className="text-xs text-slate-500">Management System</p>
                     </div>
@@ -100,7 +95,7 @@ export default function Sidebar({ onLogout }) {
             {/* Navigation */}
             <nav className="flex-1 p-4 overflow-y-auto">
                 <ul className="space-y-1.5">
-                    {filteredNavItems.map((item) => {
+                    {navItems.map((item) => {
                         const Icon = item.icon;
                         return (
                             <li key={item.id}>
@@ -113,18 +108,12 @@ export default function Sidebar({ onLogout }) {
                     })}
                 </ul>
 
-                <div className="my-6 border-t border-slate-200"></div>
-
-                <NavLink to="/settings" className={navLinkClass}>
-                    <Settings className="w-5 h-5" />
-                    <span>Settings</span>
-                </NavLink>
             </nav>
 
             {/* User Profile & Logout */}
             <div className="p-4 border-t border-slate-200 relative">
                 <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors">
-                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-violet-600 to-purple-600 flex items-center justify-center text-white shadow-md font-semibold text-sm">
+                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-orange-600 to-orange-500 flex items-center justify-center text-white shadow-md font-semibold text-sm">
                         {getInitials(user?.username || user?.name)}
                     </div>
                     <div className="flex-1 min-w-0">
