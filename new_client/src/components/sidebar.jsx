@@ -80,9 +80,7 @@ export default function Sidebar({ onLogout }) {
             <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 via-transparent to-orange-600/5 pointer-events-none"></div>
             <div className="p-6 border-b border-slate-200 relative">
                 <div className="flex items-center gap-3">
-                    {/* <div className="w-11 h-11 bg-gradient-to-br from-violet-700 to-purple-600 rounded-xl flex items-center justify-center shadow-md shadow-violet-200"> */}
                         <img src="/logo.png" alt="FuelFlow" className="w-12 h-12" />
-                    {/* </div> */}
                     <div>
                         <h1 className="bg-gradient-to-r from-orange-400 to-orange-600 bg-clip-text text-transparent font-semibold text-xl flex items-center gap-2">
                             FuelFlow

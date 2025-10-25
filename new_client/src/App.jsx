@@ -6,12 +6,13 @@ import 'react-toastify/dist/ReactToastify.css';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Tanks from './pages/Tanks';
-// import Pumps from './pages/Pumps';
-// import Employees from './pages/Employees';
-// import Customers from './pages/Customers';
-// import Sales from './pages/Sales';
-// import Shifts from './pages/Shifts';
-// import Reports from './pages/Reports';
+import Pumps from './pages/Pumps';
+import Employees from './pages/Employees';
+import Customers from './pages/Customers';
+import Sales from './pages/Sales';
+import Shifts from './pages/Shifts';
+import Reports from './pages/AnalyticsReports';
+import Inventory from './pages/Inventory';
 
 import Sidebar from './components/Sidebar';
 import ProtectedRoute from './components/protectedRoute';
@@ -34,21 +35,22 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/*" element={
-            // <ProtectedRoute>
+            <ProtectedRoute>
               <MainLayout>
                 <Routes>
                   <Route path="/" element={<Navigate to="/dashboard" />} />
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/tanks" element={<Tanks />} />
-                  {/* <Route path="/pumps" element={<Pumps />} /> */}
-                  {/* <Route path="/employees" element={<Employees />} /> */}
-                  {/* <Route path="/customers" element={<Customers />} /> */}
-                  {/* <Route path="/sales" element={<Sales />} />  */}
-                  {/* <Route path="/shifts" element={<Shifts />} /> */}
-                  {/* <Route path="/reports" element={<Reports />} /> */}
+                  <Route path="/pumps" element={<Pumps />} />
+                  <Route path="/employees" element={<Employees />} />
+                  <Route path="/customers" element={<Customers />} />
+                  <Route path="/sales" element={<Sales />} /> 
+                  <Route path="/shifts" element={<Shifts />} />
+                  <Route path="/reports" element={<Reports />} />
+                  <Route path='/inventory' element={<Inventory />} />
                 </Routes>
               </MainLayout>
-            // </ProtectedRoute>
+            </ProtectedRoute>
           } />
         </Routes>
       </Router>

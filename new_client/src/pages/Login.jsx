@@ -105,7 +105,7 @@ export default function Login() {
         <div className="mt-6 p-2 bg-white rounded-xl"> 
           <p className="text-xs font-medium text-orange-900 mb-2">Demo Credentials:</p> 
             <div className="space-y-1 text-xs text-orange-700"> 
-              <p><strong>Admin:</strong> sj586997@gmail.com / #Papewali123</p> 
+              <p><strong>Admin:</strong> admin@gmail.com / Admin123</p> 
             </div> 
           </div> 
 

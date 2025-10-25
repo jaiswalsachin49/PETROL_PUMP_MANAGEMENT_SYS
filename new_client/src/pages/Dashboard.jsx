@@ -151,47 +151,47 @@ export default function Dashboard() {
             <div className='grid md:grid-cols-2 lg:grid-cols-4 gap-6 my-8 px-8'>
                 <Card className='p-4 relative shadow-s hover:shadow-lg transition-shadow group'>
                     <div className="flex items-start justify-between mb-4 py-4">
-                        <div className="bg-orange-50 p-3 rounded-xl">
+                        <div className="bg-orange-50 p-3 rounded-xl flex gap-2">
                             <DollarSign className="size-6 text-orange-500" />
+                            <p className="text-md font-semibold text-slate-800 mb-1">Last Shift's Revenue</p>
                         </div>
                         <ArrowUpRight className="size-5 text-slate-400 transition-colors group-hover:text-orange-500" />
                     </div>
-                    <p className="text-sm text-slate-600 mb-1">Last Shift's Revenue</p>
-                    <h1 className="text-2xl font-semibold text-slate-900">₹{dataForCard.lastShift?.revenue?.toLocaleString()}</h1>
-                    <p className="text-sm text-green-600">{dataForCard.lastShift?.revenueChange || '0%'} vs previous</p>
+                    <h1 className="text-2xl font-bold text-slate-800 px-4">₹{dataForCard.lastShift?.revenue?.toLocaleString()}</h1>
+                    <p className="text-sm text-green-600 px-4">{dataForCard.lastShift?.revenueChange || '0%'} <span className='text-slate-600'>from previous </span></p>
                 </Card>
-                <Card className='p-4 relative shadow-s hover:shadow-lg transition-shadow group'>
+                <Card className='p-4 relative shadow-s hover:shadow-lg transition-shadow group '>
                     <div className="flex items-start justify-between mb-4 py-4">
-                        <div className="bg-green-50 p-3 rounded-xl">
+                        <div className="bg-green-50 p-3 rounded-xl flex gap-2">
                             <Car className="size-6 text-green-500" />
+                            <p className="text-md font-semibold text-slate-800 mb-1">Vehicle Served</p>
                         </div>
                         <ArrowUpRight className="size-5 text-slate-400 transition-colors group-hover:text-orange-500" />
                     </div>
-                    <p className="text-sm text-slate-600 mb-1">Vehicle Served</p>
-                    <h1 className="text-2xl font-semibold text-slate-900">{dataForCard.lastShift?.vehicles?.toLocaleString() || 0}</h1>
-                    <p className="text-sm text-green-600">{dataForCard.lastShift?.vehicleChange || '0%'} vs previous</p>
+                    <h1 className="text-2xl font-bold text-slate-800 px-4">{dataForCard.lastShift?.vehicles?.toLocaleString() || 0}</h1>
+                    <p className="text-sm text-green-600 px-4">{dataForCard.lastShift?.vehicleChange || '0%'} <span className='text-slate-600'>from previous </span></p>
                 </Card>
-                <Card className='p-4 relative shadow-s hover:shadow-lg transition-shadow group'>
-                    <div className="flex items-start justify-between mb-4 py-4">
-                        <div className="bg-red-50 p-3 rounded-xl">
+                <Card className='p-4 relative shadow-s hover:shadow-lg transition-shadow group '>
+                    <div className="flex items-start justify-between mb-5 py-4 ">
+                        <div className="bg-red-50 p-3 rounded-xl flex gap-2">
                             <Fuel className="size-6 text-red-500" />
+                            <p className="text-md font-semibold text-slate-800 mb-1">Fuel Dispensed</p>
                         </div>
                         <ArrowUpRight className="size-5 text-slate-400 transition-colors group-hover:text-orange-500" />
                     </div>
-                    <p className="text-sm text-slate-600 mb-1">Fuel Dispensed</p>
-                    <h1 className="text-2xl font-semibold text-slate-900">{dataForCard.lastShift?.fuelQuantity?.toLocaleString() || 0}</h1>
-                    <p className="text-sm text-green-600">{dataForCard.lastShift?.staffUtilization || '0%'} vs previous</p>
+                    <h1 className="text-2xl font-bold text-slate-800 px-4">{dataForCard.lastShift?.fuelQuantity?.toLocaleString() || 0}</h1>
+                    <p className="text-sm text-green-600 px-4">{dataForCard.lastShift?.staffUtilization || '0%'} <span className='text-slate-600'>from previous </span></p>
                 </Card>
-                <Card className='p-4 relative shadow-s hover:shadow-lg transition-shadow group'>
+                <Card className='p-4 relative shadow-s hover:shadow-lg transition-shadow group '>
                     <div className="flex items-start justify-between mb-4 py-4">
-                        <div className="bg-orange-50 p-3 rounded-xl">
+                        <div className="bg-blue-50 p-3 rounded-xl flex gap-2">
                             <User className="size-6 text-blue-500" />
+                            <p className="text-md font-semibold text-slate-800 mb-1">Active Staff</p>
                         </div>
                         <ArrowUpRight className="size-5 text-slate-400 transition-colors group-hover:text-orange-500" />
                     </div>
-                    <p className="text-sm text-slate-600 mb-1">Active Staff</p>
-                    <h1 className="text-2xl font-semibold text-slate-900">{dataForCard.lastShift?.activeStaff?.toLocaleString() || 0}</h1>
-                    <p className="text-sm text-green-600">{dataForCard.lastShift?.staffUtilization || '0%'} utilization</p>
+                    <h1 className="text-2xl font-bold text-slate-800 px-4">{dataForCard.lastShift?.activeStaff?.toLocaleString() || 0}</h1>
+                    <p className="text-sm text-slate-600 px-4">{dataForCard.lastShift?.staffUtilization || '0%'} utilization</p>
                 </Card>
             </div>
 
@@ -201,7 +201,7 @@ export default function Dashboard() {
                         <Zap className='text-orange-500 size-6' /> Shift Sales Trend
                     </h3>
                     <ResponsiveContainer width="100%" height={300}>
-                        <AreaChart data={sampleHourlyData}>
+                        <AreaChart data={hourlyData}>
                             <defs>
                                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#f97316" stopOpacity={0.5} />
@@ -222,14 +222,14 @@ export default function Dashboard() {
                     <ResponsiveContainer width="100%" height={250}>
                         <PieChart>
                             <Pie
-                                data={sampleFuelDistribution}
+                                data={fuelDistribution}
                                 dataKey="percentage"
                                 nameKey="name"
                                 outerRadius={80}
                                 innerRadius={40}
                                 paddingAngle={5}
                             >
-                                {sampleFuelDistribution.map((entry, index) => (
+                                {fuelDistribution.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={fuelColors[entry.name] || "#6b7280"} />
                                 ))}
                             </Pie>
@@ -237,7 +237,7 @@ export default function Dashboard() {
                         </PieChart>
                     </ResponsiveContainer>
                     <div className="space-y-3 mt-4">
-                        {sampleFuelDistribution.map((item, index) => (
+                        {fuelDistribution.map((item, index) => (
                             <div key={index} className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <div className="size-3 rounded-full" style={{ backgroundColor: fuelColors[item.name] || "#6b7280" }}></div>
@@ -257,7 +257,7 @@ export default function Dashboard() {
                     </h3>
                     <p className="text-sm text-slate-600">Revenue vs Target</p>
                     <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={sampleWeeklyPerformance} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
+                        <BarChart data={weeklyPerformance} margin={{ top: 20, right: 20, left: 0, bottom: 5 }}>
                             <CartesianGrid stroke="#d1d5db" strokeDasharray="3 3" vertical={false} />
                             <XAxis dataKey="week" stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
                             <YAxis stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
@@ -331,7 +331,7 @@ export default function Dashboard() {
                 </Card>
             </div>
 
-            <div className="mt-8 px-8">
+            <div className="my-8 px-8">
                 <Card className="border-0 shadow-lg shadow-slate-200/50 bg-white/80 backdrop-blur">
                     <div className="p-6">
                         <div className="mb-4 flex items-center gap-2">
