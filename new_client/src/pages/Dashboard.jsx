@@ -7,7 +7,7 @@ import {
     Legend, Bar,
     PieChart, Pie, Cell
 } from 'recharts'
-import { Car, DollarSign, ArrowUpRight, User, Fuel, Droplets, Zap, BarChart3,Clock } from 'lucide-react'
+import { Car, DollarSign, ArrowUpRight, User, Fuel, Droplets, Zap, BarChart3,Clock, TrendingDown,TrendingUp } from 'lucide-react'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function Dashboard() {
@@ -150,7 +150,7 @@ export default function Dashboard() {
             <div className="bg-white/80 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-10"> <div className="px-8 py-4"> <div className="flex items-center justify-between"> <div className="flex items-center gap-4"> <div> <h1 className="text-slate-900 flex items-center gap-2"> Dashboard <div className="size-2 bg-emerald-500 rounded-full animate-pulse"></div> </h1> <p className="text-sm text-slate-600">Real-time fuel station monitoring</p> </div> </div> </div> </div> </div>
             <div className='grid md:grid-cols-2 lg:grid-cols-4 gap-6 my-8 px-8'>
                 <Card className='p-4 relative shadow-s hover:shadow-lg transition-shadow group'>
-                    <div className="flex items-start justify-between mb-4 py-4">
+                    <div className="flex items-start justify-between mb-4 py-1">
                         <div className="bg-orange-50 p-3 rounded-xl flex gap-2">
                             <DollarSign className="size-6 text-orange-500" />
                             <p className="text-md font-semibold text-slate-800 mb-1">Last Shift's Revenue</p>
@@ -158,10 +158,10 @@ export default function Dashboard() {
                         <ArrowUpRight className="size-5 text-slate-400 transition-colors group-hover:text-orange-500" />
                     </div>
                     <h1 className="text-2xl font-bold text-slate-800 px-4">₹{dataForCard.lastShift?.revenue?.toLocaleString()}</h1>
-                    <p className="text-sm text-green-600 px-4">{dataForCard.lastShift?.revenueChange || '0%'} <span className='text-slate-600'>from previous </span></p>
+                    <p className={`text-sm flex gap-1 items-center ${dataForCard.lastShift.revenueChange[0] == '+' ? "text-green-600" : "text-red-600" } px-4`}> {dataForCard.lastShift.revenueChange[0] == '+' ? <TrendingUp className='size-5 text-green-400' /> : <TrendingDown className='size-5 text-red-400' /> }  {dataForCard.lastShift?.revenueChange || '0%'} <span className='text-slate-600'>from previous </span></p>
                 </Card>
                 <Card className='p-4 relative shadow-s hover:shadow-lg transition-shadow group '>
-                    <div className="flex items-start justify-between mb-4 py-4">
+                    <div className="flex items-start justify-between mb-4 py-1">
                         <div className="bg-green-50 p-3 rounded-xl flex gap-2">
                             <Car className="size-6 text-green-500" />
                             <p className="text-md font-semibold text-slate-800 mb-1">Vehicle Served</p>
@@ -169,21 +169,21 @@ export default function Dashboard() {
                         <ArrowUpRight className="size-5 text-slate-400 transition-colors group-hover:text-orange-500" />
                     </div>
                     <h1 className="text-2xl font-bold text-slate-800 px-4">{dataForCard.lastShift?.vehicles?.toLocaleString() || 0}</h1>
-                    <p className="text-sm text-green-600 px-4">{dataForCard.lastShift?.vehicleChange || '0%'} <span className='text-slate-600'>from previous </span></p>
+                    <p className={`text-sm flex gap-1 ${dataForCard.lastShift.vehicleChange[0] == '+' ? "text-green-600" : "text-red-600" } px-4`}> {dataForCard.lastShift.vehicleChange[0] == '+' ? <TrendingUp className='size-5 text-green-400' /> : <TrendingDown className='size-5 text-red-400' /> } {dataForCard.lastShift?.vehicleChange || '0%'} <span className='text-slate-600'>from previous </span></p>
                 </Card>
                 <Card className='p-4 relative shadow-s hover:shadow-lg transition-shadow group '>
-                    <div className="flex items-start justify-between mb-5 py-4 ">
+                    <div className="flex items-start justify-between mb-4 py-1">
                         <div className="bg-red-50 p-3 rounded-xl flex gap-2">
                             <Fuel className="size-6 text-red-500" />
                             <p className="text-md font-semibold text-slate-800 mb-1">Fuel Dispensed</p>
                         </div>
                         <ArrowUpRight className="size-5 text-slate-400 transition-colors group-hover:text-orange-500" />
                     </div>
-                    <h1 className="text-2xl font-bold text-slate-800 px-4">{dataForCard.lastShift?.fuelQuantity?.toLocaleString() || 0}</h1>
-                    <p className="text-sm text-green-600 px-4">{dataForCard.lastShift?.staffUtilization || '0%'} <span className='text-slate-600'>from previous </span></p>
+                    <h1 className="text-2xl font-bold text-slate-800 px-4">{dataForCard.lastShift?.fuelQuantity?.toLocaleString() || 0} L</h1>
+                    <p className={`text-sm flex gap-1 ${dataForCard.lastShift.quantityChange[0] == '+' ? "text-green-600" : "text-red-600" } px-4`}> {dataForCard.lastShift.quantityChange[0] == '+' ? <TrendingUp className='size-5 text-green-400' /> : <TrendingDown className='size-5 text-red-400' /> } {dataForCard.lastShift?.quantityChange || '0%'} <span className='text-slate-600'>from previous </span></p>
                 </Card>
                 <Card className='p-4 relative shadow-s hover:shadow-lg transition-shadow group '>
-                    <div className="flex items-start justify-between mb-4 py-4">
+                    <div className="flex items-start justify-between mb-4 py-1">
                         <div className="bg-blue-50 p-3 rounded-xl flex gap-2">
                             <User className="size-6 text-blue-500" />
                             <p className="text-md font-semibold text-slate-800 mb-1">Active Staff</p>
@@ -286,7 +286,7 @@ export default function Dashboard() {
 
                         <div className="space-y-5">
                             {tanksLevel.map((tank) => (
-                                <div key={tank.id}>
+                                <div key={tank._id} >
                                     <div className="flex justify-between items-center mb-2">
                                         <span className="text-sm text-slate-700 font-medium">
                                             {tank.name}
