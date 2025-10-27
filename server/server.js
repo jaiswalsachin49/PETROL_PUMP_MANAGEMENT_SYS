@@ -4,6 +4,10 @@ const connectDB = require('./config/db');
 const cors = require('cors');
 const morgan = require('morgan');
 const errorHandler = require('./middlewares/errorHandler');
+const attendanceRoutes = require('./routes/attendance');
+const expenseRoutes = require('./routes/expense');
+const creditRoutes = require('./routes/credit');
+const reconciliationRoutes = require('./routes/reconciliation');
 
 dotenv.config();
 
@@ -29,6 +33,10 @@ app.use('/api/purchases', require('./routes/purchases'));
 app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/suppliers', require('./routes/supplier'));
 app.use('/api/reports', require('./routes/reports'));
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/expenses', expenseRoutes);
+app.use('/api/credit', creditRoutes);
+app.use('/api/reconciliation', reconciliationRoutes);
 
 const PORT = process.env.PORT || 8080;
 

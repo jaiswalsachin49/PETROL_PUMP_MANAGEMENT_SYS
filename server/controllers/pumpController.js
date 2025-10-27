@@ -1,4 +1,5 @@
 const Pump = require('../models/Pump');
+const Sale = require('../models/Sale')
 const Employee = require('../models/Employee');
 
 // @desc    Get all pumps
@@ -229,38 +230,47 @@ const getPumpsWithSales = async (req, res) => {
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
-        const pumps = await Pump.find().populate('tankId', 'fuelType').lean();
+        const pumps = await Pump.find().populate('tankId', 'tankNumber fuelType').lean();
 
         const pumpSales = await Sale.aggregate([
             { $match: { date: { $gte: today, $lt: tomorrow } } },
             {
                 $group: {
                     _id: '$pumpId',
-                    todaySales: { $sum: '$totalAmount' }
+                    todaySales: { $sum: '$totalAmount' },
+                    todaySalesQty: { $sum: '$quantity' }
                 }
             }
         ]);
 
         const salesMap = {};
         pumpSales.forEach(s => {
-            salesMap[s._id.toString()] = s.todaySales;
+            salesMap[s._id.toString()] = {
+                amount: s.todaySales,
+                quantity: s.todaySalesQty
+            };
         });
 
-        const response = pumps.map(pump => ({
-            id: pump._id,
-            name: pump.pumpNumber,
-            type: pump.tankId?.fuelType || 'Unknown',
-            tank: `Tank ${pump.tankId?.tankNumber || 'N/A'}`,
-            status: pump.status === 'operational' ? 'Active' : 'Maintenance',
-            todaySales: salesMap[pump._id.toString()] || 0,
-            color: pump.status === 'operational' ? 'emerald' : 'orange'
-        }));
+        const response = pumps.map(pump => {
+            const sales = salesMap[pump._id.toString()] || { amount: 0, quantity: 0 };
+            return {
+                id: pump._id,
+                name: pump.pumpNumber,
+                type: pump.tankId?.fuelType || 'Unknown',
+                tank: `Tank ${pump.tankId?.tankNumber || 'N/A'}`,
+                status: pump.status === 'active' ? 'Active' : 'Maintenance',
+                todaySalesAmount: sales.amount,
+                todaySalesQuantity: sales.quantity,
+                color: pump.status === 'active' ? 'emerald' : 'orange'
+            };
+        });
 
         res.json({ success: true, data: response });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
 
 
 module.exports = {

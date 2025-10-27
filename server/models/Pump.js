@@ -8,7 +8,7 @@ const nozzleSchema = new mongoose.Schema({
     fueltype: {
         type: String,
         required: [true, 'Fuel type is required'],
-        enum: ['Petrol', 'Diesel', 'CNG']
+        enum: ['petrol', 'diesel', 'cng']
     },
     openingReading: {
         type: Number,
@@ -44,8 +44,8 @@ const pumpSchema = new mongoose.Schema({
     nozzles:[nozzleSchema],
     status:{
         type: String,
-        enum: ['Active', 'Inactive', 'Under Maintenance'],
-        default: 'Active'
+        enum: ['active', 'under-maintainance'],
+        default: 'active'
     },
     lastCalibrationDate:{
         type: Date,

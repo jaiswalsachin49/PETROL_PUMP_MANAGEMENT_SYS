@@ -6,6 +6,7 @@ const {
     updateShift,
     deleteShift,
     createShift,
+    closeShift
     } = require('../controllers/shiftController')
 
 const router = express.Router()
@@ -19,4 +20,6 @@ router.route('/:id')
     .put(protect, authorize('admin','manager'), updateShift)
     .delete(protect, authorize('admin'), deleteShift)
 
+router.route('/:id/close')
+    .post(protect, closeShift)
 module.exports = router

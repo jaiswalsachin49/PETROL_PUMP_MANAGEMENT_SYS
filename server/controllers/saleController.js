@@ -1,4 +1,7 @@
-const Sale = require('../models/Sale');
+const Sale = require('../models/Sale')
+const Pump = require('../models/Pump')
+const Tank = require('../models/Tank')
+const Customer = require('../models/Customer')
 
 // @desc    Get all sales
 // @route   GET /api/sales
@@ -103,6 +106,39 @@ const createSale = async (req, res) => {
     try {
         req.body.totalAmount = req.body.quantity * req.body.pricePerLiter;
         const sale = await Sale.create(req.body);
+
+        const pump = await Pump.findById(sale.pumpId);
+        if (pump && pump.tankId) {
+            await Tank.findByIdAndUpdate(
+                pump.tankId,
+                { $inc: { currentLevel: -sale.quantity } }
+            );
+        }
+
+        if ((sale.saleType === 'credit' || sale.saleType === 'fleet') && sale.customerId) {
+            const customer = await Customer.findById(sale.customerId);
+
+            if (customer) {
+                const newBalance = customer.outstandingBalance + sale.totalAmount;
+                if (newBalance > customer.creditLimit) {
+                    await Sale.findByIdAndDelete(sale._id);
+                    if (pump && pump.tankId) {
+                        await Tank.findByIdAndUpdate(pump.tankId, {
+                            $inc: { currentLevel: sale.quantity }
+                        });
+                    }
+                    return res.status(400).json({
+                        success: false,
+                        message: `Credit limit exceeded. Limit: ${customer.creditLimit}, Current: ${customer.outstandingBalance}, Attempted: ${sale.totalAmount}`
+                    });
+                }
+
+                await Customer.findByIdAndUpdate(sale.customerId, {
+                    $inc: { outstandingBalance: sale.totalAmount }
+                });
+            }
+        }
+
         res.status(201).json({
             success: true,
             data: sale

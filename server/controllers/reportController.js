@@ -14,7 +14,10 @@ const mongoose = require('mongoose');
 // @access  Private
 const getDashboardSummary = async (req, res) => {
     try {
-        const lastTwoShift = await Shift.findOne().sort({ status: 'closed' }).sort({ shiftNumber: -1 }).limit(2).lean()
+        const lastTwoShift = await Shift.find({ status: 'closed' })
+            .sort({ shiftNumber: -1 })
+            .limit(2)
+            .lean();
         if (!lastTwoShift || lastTwoShift.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -67,14 +70,14 @@ const getDashboardSummary = async (req, res) => {
             totalTransactions: 0
         };
 
-        const revenueChange = prevStats.totalSalesAmount === 0 ? null :
-            ((lastStats.totalSalesAmount - prevStats.totalSalesAmount) / prevStats.totalSalesAmount) * 100;
+        const revenueChange = prevStats.totalSalesAmount === 0 ? 100 :
+            (((lastStats.totalSalesAmount - prevStats.totalSalesAmount) / prevStats.totalSalesAmount) * 100).toFixed(2);
 
-        const quantityChange = prevStats.totalQuantitySold === 0 ? null :
-            ((lastStats.totalQuantitySold - prevStats.totalQuantitySold) / prevStats.totalQuantitySold) * 100;
+        const quantityChange = prevStats.totalQuantitySold === 0 ? 100 :
+            (((lastStats.totalQuantitySold - prevStats.totalQuantitySold) / prevStats.totalQuantitySold) * 100).toFixed(2);
 
-        const transactionChange = prevStats.totalTransactions === 0 ? null :
-            ((lastStats.totalTransactions - prevStats.totalTransactions) / prevStats.totalTransactions) * 100;
+        const transactionChange = prevStats.totalTransactions === 0 ? 100 :
+            (((lastStats.totalTransactions - prevStats.totalTransactions) / prevStats.totalTransactions) * 100).toFixed(2);
 
         // GET ACTIVE STAFF COUNT
         const activeStaff = lastShift.assignedEmployees?.length || 0;
@@ -106,7 +109,7 @@ const getDashboardSummary = async (req, res) => {
                     fuelQuantity: lastStats.totalQuantitySold,
                     quantityChange: `${quantityChange >= 0 ? '+' : ''}${quantityChange}%`,
                     activeStaff: `${activeStaff} / ${totalStaff}`,
-                    staffUtilization: totalStaff === 0 ? null : ((activeStaff / totalStaff) * 100).toFixed(2) + '%',
+                    staffUtilization: totalStaff === 0 ? 100 : ((activeStaff / totalStaff) * 100).toFixed(2) + '%',
                     startTime: lastShift.startTime,
                     endTime: lastShift.endTime,
                     tankLevels: tankLevels
@@ -132,49 +135,57 @@ const getDashboardSummary = async (req, res) => {
 
 // ====== AREA CHART DATA FOR SALES TRENDS ======
 
-// @desk    Get shift sales trend (last 10 shifts)
-// @route   GET /api/reports/shift-sales-trends
-// @access  Private
+// @desc Get shift sales trend (last 10 shifts)
+// @route GET /api/reports/shift-sales-trends
+// @access Private
 const getShiftSalesTrends = async (req, res) => {
     try {
-        const shifts = await Shift.find({ status: 'closed' }).sort({ shiftNumber: -1 }).limit(10).lean()
-        const shiftIds = shifts.map(s => s._id)
+        const shifts = await Shift.find({ status: 'closed' })
+            .sort({ startTime: -1 })
+            .limit(10)
+            .lean();
+
+        const shiftObjectIds = shifts.map((s) => s._id);
 
         const saleByShift = await Sale.aggregate([
-            { $match: { shiftId: { $in: shiftIds } } },
-            {
-                $group: {
-                    _id: "$shiftId",
-                    totalSalesAmount: { $sum: "$totalSales" }
-                }
-            }
-        ])
+            { $match: { shiftId: { $in: shiftObjectIds } } },
+            { $group: { _id: '$shiftId', totalSalesAmount: { $sum: '$totalAmount' } } },
+        ]);
 
-        const saleMap = {}
-        saleByShift.forEach(sale => {
-            saleMap[sale._id.toString()] = sale.totalSalesAmount
-        })
+        const saleMap = {};
+        saleByShift.forEach((sale) => {
+            saleMap[sale._id.toString()] = sale.totalSalesAmount;
+        });
 
-        const trendData = shifts.reverse().map(shift => ({
+        const trendData = shifts.reverse().map((shift) => ({
             shiftNumber: shift.shiftNumber,
             time: new Date(shift.startTime).toLocaleTimeString('en-IN', {
                 hour: '2-digit',
-                minute: '2-digit'
+                minute: '2-digit',
             }),
+            date: new Date(shift.startTime).toLocaleDateString('en-IN'),
             sales: saleMap[shift._id.toString()] || 0,
-            date: new Date(shift.startTime).toLocaleDateString('en-IN')
-        }))
+            label: `${new Date(shift.startTime).toLocaleDateString('en-IN', {
+                day: '2-digit',
+                month: 'short'
+            })} - Shift ${shift.shiftNumber}`,
+            shortLabel: `${new Date(shift.startTime).getDate()}/${new Date(shift.startTime).getMonth() + 1} S${shift.shiftNumber}`,
+            datetime: shift.startTime,
+            shiftId: shift._id.toString()
+        }));
+
         res.status(200).json({
             success: true,
-            data: trendData
-        })
+            data: trendData,
+        });
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: error.message
-        })
+            message: error.message,
+        });
     }
-}
+};
+
 
 // ============ PIE CHART ===============================
 // @desk   Get fuel type distribution for last shift
@@ -182,8 +193,25 @@ const getShiftSalesTrends = async (req, res) => {
 // @access  Private
 const getFuelDistribution = async (req, res) => {
     try {
-        const shiftId = req.query.shiftId || Shift.findOne().sort({ status: 'closed' }).sort({ shiftNumber: -1 })._id;
-        let matchCondition = { shiftId: mongoose.Types.ObjectId(shiftId) }
+        let shiftId;
+
+        if (req.query.shiftId) {
+            shiftId = req.query.shiftId;
+        } else {
+            const latestClosedShift = await Shift.findOne({ status: 'closed' })
+                .sort({ shiftNumber: -1 })
+                .select('_id');
+            shiftId = latestClosedShift?._id;
+        }
+
+        if (!shiftId) {
+            return res.status(404).json({
+                success: false,
+                message: 'No shiftId provided and no closed shift found.',
+            });
+        }
+
+        const matchCondition = { shiftId: new mongoose.Types.ObjectId(shiftId) }
 
         const distribution = await Sale.aggregate([
             { $match: matchCondition },
@@ -211,9 +239,9 @@ const getFuelDistribution = async (req, res) => {
                     color: {
                         $switch: {
                             branches: [
-                                { case: { $eq: ['$_id', 'petrol'] }, then: '#8b5cf6' },
-                                { case: { $eq: ['$_id', 'diesel'] }, then: '#10b981' },
-                                { case: { $eq: ['$_id', 'cng'] }, then: '#f59e0b' }
+                                { case: { $eq: ['$_id', 'petrol'] }, then: "#f97316" },
+                                { case: { $eq: ['$_id', 'diesel'] }, then: "#10b981" },
+                                { case: { $eq: ['$_id', 'cng'] }, then: "#f59e0b" }
                             ],
                             default: '#6b7280'
                         }
@@ -225,7 +253,7 @@ const getFuelDistribution = async (req, res) => {
         const totalQuantity = distribution.reduce((acc, curr) => acc + curr.totalQuantity, 0)
         const distributionWithPercentage = distribution.map(item => ({
             ...item,
-            percentage: totalQuantity === 0 ? 0 : ((item.totalQuantity / totalQuantity) * 100).toFixed(2)
+            percentage: totalQuantity === 0 ? 0 : Number(((item.totalQuantity / totalQuantity) * 100).toFixed(2))
         }))
 
         res.status(200).json({
@@ -286,11 +314,11 @@ const getWeeklyPerformance = async (req, res) => {
 
 
 // @desk    Get Tank level
-// @route   GET /api/reports/tanks-level
+// @route   GET /api/reports/tanks-levels
 // @access  Private
 const getTankLevels = async (req, res) => {
     try {
-        const tanks = Tank.aggregate([{
+        const tanks = await Tank.aggregate([{
             $project: {
                 name: { $concat: ['$fuelType', 'Tank', { $toString: '$tankNumber' }] },
                 tankNumber: 1,
@@ -474,9 +502,9 @@ const getTopPerformers = async (req, res) => {
 
 // ==================== SHIFT DETAILS ====================
 
-// @desc    Get detailed shift report
-// @route   GET /api/reports/shift/:shiftId
-// @access  Private
+// @desc Get detailed shift report
+// @route GET /api/reports/shift/:shiftId
+// @access Private
 const getShiftDetail = async (req, res) => {
     try {
         const shift = await Shift.findById(req.params.shiftId)
@@ -485,10 +513,13 @@ const getShiftDetail = async (req, res) => {
             .lean();
 
         if (!shift) {
-            return res.status(404).json({ success: false, message: 'Shift not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Shift not found'
+            });
         }
 
-        // Get sales for this shift
+        // ALWAYS aggregate from Sale collection (SINGLE SOURCE OF TRUTH)
         const shiftSales = await Sale.aggregate([
             { $match: { shiftId: shift._id } },
             {
@@ -496,7 +527,24 @@ const getShiftDetail = async (req, res) => {
                     _id: null,
                     totalRevenue: { $sum: '$totalAmount' },
                     totalQuantity: { $sum: '$quantity' },
-                    transactions: { $sum: 1 }
+                    transactions: { $sum: 1 },
+
+                    // Payment method breakdown
+                    cashCollected: {
+                        $sum: {
+                            $cond: [{ $eq: ['$saleType', 'cash'] }, '$totalAmount', 0]
+                        }
+                    },
+                    cardPayments: {
+                        $sum: {
+                            $cond: [{ $eq: ['$saleType', 'card'] }, '$totalAmount', 0]
+                        }
+                    },
+                    upiPayments: {
+                        $sum: {
+                            $cond: [{ $eq: ['$saleType', 'upi'] }, '$totalAmount', 0]
+                        }
+                    }
                 }
             }
         ]);
@@ -508,7 +556,8 @@ const getShiftDetail = async (req, res) => {
                 $group: {
                     _id: '$fuelType',
                     quantity: { $sum: '$quantity' },
-                    revenue: { $sum: '$totalAmount' }
+                    revenue: { $sum: '$totalAmount' },
+                    transactions: { $sum: 1 }
                 }
             }
         ]);
@@ -520,7 +569,8 @@ const getShiftDetail = async (req, res) => {
                 $group: {
                     _id: '$pumpId',
                     quantity: { $sum: '$quantity' },
-                    revenue: { $sum: '$totalAmount' }
+                    revenue: { $sum: '$totalAmount' },
+                    transactions: { $sum: 1 }
                 }
             },
             {
@@ -534,7 +584,18 @@ const getShiftDetail = async (req, res) => {
             { $unwind: '$pump' }
         ]);
 
-        const stats = shiftSales[0] || { totalRevenue: 0, totalQuantity: 0, transactions: 0 };
+        const stats = shiftSales[0] || {
+            totalRevenue: 0,
+            totalQuantity: 0,
+            transactions: 0,
+            cashCollected: 0,
+            cardPayments: 0,
+            upiPayments: 0
+        };
+
+        // Calculate discrepancy from AGGREGATED data, not shift fields
+        const expectedCash = shift.openingCash + stats.cashCollected;
+        const cashDiscrepancy = shift.closingCash - expectedCash;
 
         res.json({
             success: true,
@@ -543,11 +604,31 @@ const getShiftDetail = async (req, res) => {
                 stats,
                 fuelBreakdown,
                 pumpSales,
-                discrepancy: shift.totalSales - shift.cashCollected - shift.cardPayments - shift.upiPayments
+
+                // Use real-time aggregated data for calculations
+                cashFlow: {
+                    openingCash: shift.openingCash,
+                    cashSales: stats.cashCollected,
+                    expectedCash: expectedCash,
+                    closingCash: shift.closingCash,
+                    discrepancy: cashDiscrepancy
+                },
+
+                // Show if shift cached values differ from real data
+                dataConsistency: shift.status === 'closed' ? {
+                    cachedTotalSales: shift.totalSales,
+                    actualTotalSales: stats.totalRevenue,
+                    difference: stats.totalRevenue - shift.totalSales,
+                    isConsistent: Math.abs(stats.totalRevenue - shift.totalSales) < 0.01
+                } : null
             }
         });
+
     } catch (error) {
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 };
 

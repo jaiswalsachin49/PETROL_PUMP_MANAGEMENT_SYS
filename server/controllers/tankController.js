@@ -127,17 +127,21 @@ const updateDipReading = async (req, res) => {
         const { reading } = req.body
         const tank = await Tank.findById(req.params.id)
         if (!tank) {
-            res.status(404).json({
+            return res.status(404).json({
                 success: false,
                 message: 'Tank not found'
             })
         }
+        
+        tank.currentLevel = reading;
+
         tank.lastDipReading = {
             reading,
             recordedBy: req.user._id,
             date: Date.now(),
             recordedAt: Date.now(),
         }
+
         await tank.save()
         res.json({
             success: true,
@@ -177,17 +181,17 @@ const getLowFuelTanks = async (req, res) => {
 // @desc    Get tank with full details including supplier and last refill
 // @route   GET /api/tanks/:id/details
 // @access  Private
-const getTankDetails = async(req,res)=>{
-    try{
+const getTankDetails = async (req, res) => {
+    try {
         const tank = await Tank.findById(req.params.id).lean()
-        if(!tank){
+        if (!tank) {
             return res.status(404).json({
                 success: false,
                 message: "Tank not found"
             })
         }
 
-        const lastRefill = await Purchase.findOne({'items.itemName': { $regex: tank.fuelType, $options: 'i' }}).sort({ date: -1 }).populate('supplierId', 'name').lean()
+        const lastRefill = await Purchase.findOne({ 'items.itemName': { $regex: tank.fuelType, $options: 'i' } }).sort({ date: -1 }).populate('supplierId', 'name').lean()
 
         const response = {
             id: tank._id,
@@ -196,17 +200,17 @@ const getTankDetails = async(req,res)=>{
             current: tank.currentLevel,
             capacity: tank.capacity,
             percentage: Math.round((tank.currentLevel / tank.capacity) * 100),
-            status: tank.currentLevel <= tank.minimumLevel ? 'Critical' : 
-                    tank.currentLevel <= tank.minimumLevel * 1.5 ? 'Low' : 'Good',
+            status: tank.currentLevel <= tank.minimumLevel ? 'Critical' :
+                tank.currentLevel <= tank.minimumLevel * 1.5 ? 'Low' : 'Good',
             lastRefill: lastRefill ? new Date(lastRefill.date).toLocaleDateString('en-IN') : 'N/A',
             supplier: lastRefill?.supplierId?.name || 'N/A',
             gradient: tank.fuelType === 'Petrol' ? 'from-blue-500 to-cyan-500' :
-                        tank.fuelType === 'Diesel' ? 'from-orange-500 to-red-500' :
-                        'from-purple-500 to-pink-500'
-            };
+                tank.fuelType === 'Diesel' ? 'from-orange-500 to-red-500' :
+                    'from-purple-500 to-pink-500'
+        };
 
-    res.json({ success: true, data: response });
-    }catch(error){
+        res.json({ success: true, data: response });
+    } catch (error) {
         res.status(500).json({
             success: false,
             message: error.message

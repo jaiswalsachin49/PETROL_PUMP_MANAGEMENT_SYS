@@ -110,10 +110,26 @@ const deleteCustomer = async(req,res)=>{
     }
 }
 
+const insertMany = async(req,res)=>{
+    try{
+        const data = await Customer.insertMany(req.body)
+        res.status(201).json({
+            success: true,
+            data: {data}
+        })
+    }catch(error){
+        res.status(500).json({
+            success: false,
+            message: error.message
+        })
+    }
+}
+
 module.exports = {
     getCustomers,
     getCustomer,
     createCustomer,
     updateCustomer,
-    deleteCustomer
+    deleteCustomer,
+    insertMany
 }

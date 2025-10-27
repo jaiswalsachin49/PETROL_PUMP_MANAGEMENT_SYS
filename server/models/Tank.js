@@ -1,5 +1,4 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
 
 const tankSchema = new mongoose.Schema({
     tankNumber: {
@@ -11,7 +10,7 @@ const tankSchema = new mongoose.Schema({
     fuelType: {
         type: String,
         required: [true, 'Fuel type is required'],
-        enum: ['Petrol', 'Diesel', 'CNG']
+        enum: ['petrol', 'diesel', 'cng']
     },
     capacity: {
         type: Number,
@@ -28,8 +27,8 @@ const tankSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['Active', 'Inactive', 'Under Maintenance'],
-        default: 'Active'
+        enum: ['active', 'Inactive', 'under-maintenance'],
+        default: 'active'
     },
     dipReadings: [{
         reading: Number,

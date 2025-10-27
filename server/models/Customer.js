@@ -87,11 +87,11 @@ customerSchema.pre('save', async function (next) {
 
         let nextNumber = 1;
         if (listCus && listCus.customerId) {
-            const lastNum = parseInt(listCus.customerId.replace('EMP', ''), 10);
+            const lastNum = parseInt(listCus.customerId.replace('CUS', ''), 10);
             if (!isNaN(lastNum)) nextNumber = lastNum + 1;
         }
 
-        this.customerId = `EMP${String(nextNumber).padStart(5, '0')}`;
+        this.customerId = `CUS${String(nextNumber).padStart(5, '0')}`;
     }
     next();
 });

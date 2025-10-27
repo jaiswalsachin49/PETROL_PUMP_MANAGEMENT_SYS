@@ -53,7 +53,7 @@ const saleSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Customer',
         required: function () {
-        return this.saleType === 'Credit' || this.saleType === 'fleet';
+        return this.saleType === 'credit' || this.saleType === 'fleet';
         },
     },
     vehicleNumber: {

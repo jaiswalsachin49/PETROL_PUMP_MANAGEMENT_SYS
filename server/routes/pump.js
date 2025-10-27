@@ -20,6 +20,9 @@ router.route('/')
     .get(protect, getPumps)
     .post(protect, authorize('admin', 'manager'), createPump);
 
+router.route('/with-sales')
+    .get(protect, getPumpsWithSales)
+
 router.route('/:id')
     .get(protect, getPump)
     .put(protect, authorize('admin', 'manager'), updatePump)
@@ -40,7 +43,5 @@ router.route('/tank/:tankId')
 router.route('/status/:state')
     .get(protect, getPumpsByStatus);
 
-router.route('/with-sales')
-    .get(protect, getPumpsWithSales)
 
 module.exports = router;

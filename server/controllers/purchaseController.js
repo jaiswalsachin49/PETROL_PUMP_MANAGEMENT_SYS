@@ -1,4 +1,6 @@
 const Purchase = require('../models/Purchase');
+const Inventory = require('../models/Inventory')
+const Tank = require('../models/Tank')
 
 // @desc    Get all purchase
 // @route   GET /api/purchases
@@ -50,6 +52,33 @@ const createPurchase = async (req, res) => {
     try {
         const purchase = new Purchase(req.body);
         await purchase.save();
+
+        for (const item of purchase.items) {
+            if (item.itemId) {
+                await Inventory.findByIdAndUpdate(
+                    item.itemId,
+                    {
+                        $inc: { quantity: item.quantity },
+                        lastRestockDate: new Date()
+                    }
+                );
+            }
+
+            if (item.itemName && item.quantity) {
+                const fuelType = item.itemName.toLowerCase();
+                if (fuelType.includes('petrol') || fuelType.includes('diesel') || fuelType.includes('cng')) {
+                    let tankFuelType = 'petrol';
+                    if (fuelType.includes('diesel')) tankFuelType = 'diesel';
+                    if (fuelType.includes('cng')) tankFuelType = 'cng';
+
+                    await Tank.findOneAndUpdate(
+                        { fuelType: tankFuelType, status: 'active' },
+                        { $inc: { currentLevel: item.quantity } }
+                    );
+                }
+            }
+        }
+
         res.status(201).json({
             success: true,
             data: purchase

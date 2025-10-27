@@ -1,17 +1,19 @@
 const Transaction = require('../models/Transaction');
+const Customer = require('../models/Customer')
+const Supplier = require('../models/Supplier')
 
 // @desc    Get all transactions
 // @route   GET /api/transactions
 // @access  Private
-const getTransactions = async(req, res) => {
-    try{
+const getTransactions = async (req, res) => {
+    try {
         const transactions = await Transaction.find();
         res.status(200).json({
             success: true,
             count: transactions.length,
             data: transactions
         })
-    }catch(error){
+    } catch (error) {
         res.status(500).json({
             success: false,
             message: error.message
@@ -22,10 +24,10 @@ const getTransactions = async(req, res) => {
 // @desc    Get single transaction
 // @route   GET /api/transactions/:id
 // @access  Private
-const getTransaction = async(req,res)=>{
-    try{
+const getTransaction = async (req, res) => {
+    try {
         const transaction = await Transaction.findById(req.params.id);
-        if(!transaction){
+        if (!transaction) {
             return res.status(404).json({
                 success: false,
                 message: 'Transaction not found'
@@ -35,7 +37,7 @@ const getTransaction = async(req,res)=>{
             success: true,
             data: transaction
         })
-    }catch(error){
+    } catch (error) {
         res.status(500).json({
             success: false,
             message: error.message
@@ -46,15 +48,30 @@ const getTransaction = async(req,res)=>{
 // @desc    Create new transaction
 // @route   POST /api/transactions
 // @access  Private
-const createTransaction = async(req,res)=>{
-    try{
+const createTransaction = async (req, res) => {
+    try {
         const transaction = new Transaction(req.body);
         await transaction.save();
+
+        if (transaction.type === 'payment_received' && transaction.customerId) {
+            await Customer.findByIdAndUpdate(
+                transaction.customerId,
+                { $inc: { outstandingBalance: -transaction.amount } }
+            );
+        }
+
+        // ✅ ADD THIS: Update supplier balance for payments made
+        if (transaction.type === 'payment_made' && transaction.supplierId) {
+            // You may want to track supplier balances too
+            await Supplier.findByIdAndUpdate(transaction.supplierId, {
+                $inc: { outstandingPayable: -transaction.amount }
+            });
+        }
         res.status(201).json({
             success: true,
             data: transaction
         })
-    }catch(error){
+    } catch (error) {
         res.status(500).json({
             success: false,
             message: error.message
@@ -65,10 +82,10 @@ const createTransaction = async(req,res)=>{
 // @desc Update transaction
 // @route PUT /api/transactions/:id
 // @access Private
-const updateTransaction = async(req,res)=>{
-    try{
+const updateTransaction = async (req, res) => {
+    try {
         let transaction = await Transaction.findById(req.params.id);
-        if(!transaction){
+        if (!transaction) {
             return res.status(404).json({
                 success: false,
                 message: 'Transaction not found'
@@ -82,21 +99,21 @@ const updateTransaction = async(req,res)=>{
             success: true,
             data: transaction
         })
-    }catch(error){
+    } catch (error) {
         res.status(500).json({
             success: false,
             message: error.message
         })
     }
-}   
+}
 
 // @desc    Delete transaction
 // @route   DELETE /api/transactions/:id
 // @access  Private
-const deleteTransaction = async(req,res)=>{
-    try{
+const deleteTransaction = async (req, res) => {
+    try {
         const transaction = await Transaction.findById(req.params.id);
-        if(!transaction){
+        if (!transaction) {
             return res.status(404).json({
                 success: false,
                 message: 'Transaction not found'
@@ -107,7 +124,7 @@ const deleteTransaction = async(req,res)=>{
             success: true,
             message: 'Transaction deleted successfully'
         })
-    }catch(error){
+    } catch (error) {
         res.status(500).json({
             success: false,
             message: error.message
