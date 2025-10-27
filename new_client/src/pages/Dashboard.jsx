@@ -200,7 +200,7 @@ export default function Dashboard() {
                     <h3 className="flex items-center gap-2 mb-4 text-slate-900">
                         <Zap className='text-orange-500 size-6' /> Shift Sales Trend
                     </h3>
-                    <ResponsiveContainer width="100%" height={300}>
+                    <ResponsiveContainer width="100%" height={350}>
                         <AreaChart data={hourlyData}>
                             <defs>
                                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
@@ -209,8 +209,8 @@ export default function Dashboard() {
                                 </linearGradient>
                             </defs>
                             <CartesianGrid stroke="#d1d5db" strokeDasharray="3 3" />
-                            <XAxis dataKey="date" />
-                            <YAxis />
+                            <XAxis dataKey="label" tick={{ fontSize: 12 }} />
+                            <YAxis tick={{ fontSize: 12 }}/>
                             <Tooltip />
                             <Area type="monotone" dataKey="sales" stroke="#f97316" strokeWidth={2} animationDuration={2000} animationEasing="ease-in-out" name="Sales (₹)" fill="url(#colorRevenue)" />
                         </AreaChart>
