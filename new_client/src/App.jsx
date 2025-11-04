@@ -15,7 +15,7 @@ import Reports from './pages/AnalyticsReports';
 import Inventory from './pages/Inventory';
 
 import Sidebar from './components/Sidebar';
-import ProtectedRoute from './components/protectedRoute';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function MainLayout({ children }) {
   return (
