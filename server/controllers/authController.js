@@ -6,6 +6,7 @@ dotenv.config();
 
 //GENERATE JWT TOKEN
 const generateToken = (id) => {
+    console.log("JWT_SECRET:", JSON.stringify(process.env.JWT_SECRET));
     return jwt.sign({ id }, process.env.JWT_SECRET, {
         expiresIn: '30d',
     })
