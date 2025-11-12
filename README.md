@@ -1,4 +1,4 @@
-⛽ # Petrol Pump Management System
+# ⛽ Petrol Pump Management System
 A Full-Stack MERN Application with Advanced Features
 
 The Petrol Pump Management System is a comprehensive web-based solution designed to automate and streamline fuel station operations. Built using the MERN stack (MongoDB, Express.js, React.js, Node.js), it provides real-time monitoring, advanced analytics, and secure role-based access control for efficient management.
@@ -19,8 +19,8 @@ Role-Based Access Control for Admin, Manager, Accountant & Employee
 
 Real-time Analytics Dashboard with interactive charts
 
-🏗️ ## System Architecture
-🧩 ### Technology Stack
+ ## 🏗️ System Architecture
+### 🧩 Technology Stack
 Layer	Technology
 Backend	Node.js, Express.js, Mongoose
 Database	MongoDB Atlas
@@ -31,7 +31,7 @@ Authentication	JWT
 Security	bcrypt, helmet, cors
 Testing	Postman, Jest, Cypress
 Deployment	Backend: Heroku • Frontend: Vercel
-🏛️ ### Architecture Overview
+### 🏛️  Architecture Overview
 
 Three-tier architecture:
 
@@ -74,8 +74,8 @@ Tank → Pump, Shift → Sale, Customer → Sale (1:N)
 
 Embedded docs: Attendance, Dip Readings, Nozzles, Shift Readings
 
-⚙️ Backend API Architecture
-🔧 Controllers Overview
+## ⚙️ Backend API Architecture
+### 🔧 Controllers Overview
 
 authController – Authentication & authorization
 
