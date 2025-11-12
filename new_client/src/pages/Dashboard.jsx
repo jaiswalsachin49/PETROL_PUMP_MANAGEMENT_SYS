@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { dashboardService } from "../services/dashboardService";
+import React, { useState, useEffect } from "react"
+import { dashboardService } from "../services/dashboardService"
+import { creditService } from "../services/creditService"
 import { Card } from "../components/ui/Card";
-import { Badge } from "../components/ui/Badge";
+import { Badge } from "../components/ui/Badge"
 import {
     AreaChart,
     Area,
@@ -25,10 +26,10 @@ import {
     Fuel,
     Droplets,
     Zap,
-    BarChart3,
     Clock,
     TrendingDown,
     TrendingUp,
+    AlarmClock
 } from "lucide-react";
 import LoadingSpinner from "../components/LoadingSpinner";
 
@@ -50,6 +51,12 @@ export default function Dashboard() {
 
     const [recentActivity, setRecentActivity] = useState([]);
     const [recentLoading, setRecentLoading] = useState(true);
+
+    const [todaySales,setTodaySales] = useState(0)
+
+    const [totalOverDueCredits, setTotalOverDueCredits] = useState(0);
+
+    const [todayTotalQuantity, setTodayTotalQuantity] = useState(0);
 
     const fuelColors = {
         Petrol: "#f97316",
@@ -111,6 +118,8 @@ export default function Dashboard() {
             .then((res) => {
                 setDataForCard(res.data.data);
                 setCardLoading(false);
+                setTodaySales(res.data.data.todayPumpSales.map(sale=> sale.todaySalesAmount).reduce((a,b)=> a+b,0))
+                setTodayTotalQuantity(res.data.data.todayPumpSales.map(sale=> sale.todaySalesQuantity).reduce((a,b)=> a+b,0))
             })
             .catch((error) => console.log(error));
 
@@ -172,6 +181,13 @@ export default function Dashboard() {
                 setRecentLoading(false);
             })
             .catch((error) => console.log(error));
+        
+        creditService
+            .getOverdueCredits()
+            .then((res) => {
+                setTotalOverDueCredits(res.data.data.length);
+            })
+            .catch((error) => console.log(error));
     }, []);
 
     if (
@@ -223,86 +239,18 @@ export default function Dashboard() {
                         <div className="bg-orange-50 p-3 rounded-xl flex gap-2">
                             <DollarSign className="size-6 text-orange-500" />
                             <p className="text-md font-semibold text-slate-800 mb-1">
-                                Last Shift's Revenue
+                                Today's Revenue
                             </p>
                         </div>
                         <ArrowUpRight className="size-5 text-slate-400 transition-colors group-hover:text-orange-500" />
                     </div>
                     <h1 className="text-2xl font-bold text-slate-800 px-4">
-                        ₹{dataForCard.lastShift?.revenue?.toLocaleString()}
+                        ₹{todaySales.toLocaleString()}
                     </h1>
                     <p
-                        className={`text-sm flex gap-1 items-center ${dataForCard.lastShift.revenueChange[0] == "+"
-                            ? "text-green-600"
-                            : "text-red-600"
-                            } px-4`}
+                        className={`text-sm flex gap-1 items-center px-4`}
                     >
-                        {" "}
-                        {dataForCard.lastShift.revenueChange[0] == "+" ? (
-                            <TrendingUp className="size-5 text-green-400" />
-                        ) : (
-                            <TrendingDown className="size-5 text-red-400" />
-                        )}{" "}
-                        {dataForCard.lastShift?.revenueChange || "0%"}{" "}
-                        <span className="text-slate-600">from previous </span>
-                    </p>
-                </Card>
-                <Card className="p-4 relative shadow-s hover:shadow-lg transition-shadow group ">
-                    <div className="flex items-start justify-between mb-4 py-1">
-                        <div className="bg-green-50 p-3 rounded-xl flex gap-2">
-                            <Car className="size-6 text-green-500" />
-                            <p className="text-md font-semibold text-slate-800 mb-1">
-                                Vehicle Served
-                            </p>
-                        </div>
-                        <ArrowUpRight className="size-5 text-slate-400 transition-colors group-hover:text-orange-500" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-800 px-4">
-                        {dataForCard.lastShift?.vehicles?.toLocaleString() || 0}
-                    </h1>
-                    <p
-                        className={`text-sm flex gap-1 ${dataForCard.lastShift.vehicleChange[0] == "+"
-                            ? "text-green-600"
-                            : "text-red-600"
-                            } px-4`}
-                    >
-                        {" "}
-                        {dataForCard.lastShift.vehicleChange[0] == "+" ? (
-                            <TrendingUp className="size-5 text-green-400" />
-                        ) : (
-                            <TrendingDown className="size-5 text-red-400" />
-                        )}{" "}
-                        {dataForCard.lastShift?.vehicleChange || "0%"}{" "}
-                        <span className="text-slate-600">from previous </span>
-                    </p>
-                </Card>
-                <Card className="p-4 relative shadow-s hover:shadow-lg transition-shadow group ">
-                    <div className="flex items-start justify-between mb-4 py-1">
-                        <div className="bg-red-50 p-3 rounded-xl flex gap-2">
-                            <Fuel className="size-6 text-red-500" />
-                            <p className="text-md font-semibold text-slate-800 mb-1">
-                                Fuel Dispensed
-                            </p>
-                        </div>
-                        <ArrowUpRight className="size-5 text-slate-400 transition-colors group-hover:text-orange-500" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-800 px-4">
-                        {dataForCard.lastShift?.fuelQuantity?.toLocaleString() || 0} L
-                    </h1>
-                    <p
-                        className={`text-sm flex gap-1 ${dataForCard.lastShift.quantityChange[0] == "+"
-                            ? "text-green-600"
-                            : "text-red-600"
-                            } px-4`}
-                    >
-                        {" "}
-                        {dataForCard.lastShift.quantityChange[0] == "+" ? (
-                            <TrendingUp className="size-5 text-green-400" />
-                        ) : (
-                            <TrendingDown className="size-5 text-red-400" />
-                        )}{" "}
-                        {dataForCard.lastShift?.quantityChange || "0%"}{" "}
-                        <span className="text-slate-600">from previous </span>
+                        { new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }
                     </p>
                 </Card>
                 <Card className="p-4 relative shadow-s hover:shadow-lg transition-shadow group ">
@@ -321,6 +269,64 @@ export default function Dashboard() {
                     <p className="text-sm text-slate-600 px-4">
                         {dataForCard.lastShift?.staffUtilization || "0%"} utilization
                     </p>
+                </Card>
+                <Card className="p-4 relative shadow-s hover:shadow-lg transition-shadow group ">
+                    <div className="flex items-start justify-between mb-4 py-1">
+                        <div className="bg-red-50 p-3 rounded-xl flex gap-2">
+                            <Fuel className="size-6 text-green-500" />
+                            <p className="text-md font-semibold text-slate-800 mb-1">
+                                Today's Fuel Dispensed
+                            </p>
+                        </div>
+                        <ArrowUpRight className="size-5 text-slate-400 transition-colors group-hover:text-orange-500" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-slate-800 px-4">
+                        {todayTotalQuantity.toLocaleString() || 0} L
+                    </h1>
+                    {/* <p
+                        className={`text-sm flex gap-1 ${dataForCard.lastShift.quantityChange[0] == "+"
+                            ? "text-green-600"
+                            : "text-red-600"
+                            } px-4`}
+                    >
+                        {" "}
+                        {dataForCard.lastShift.quantityChange[0] == "+" ? (
+                            <TrendingUp className="size-5 text-green-400" />
+                        ) : (
+                            <TrendingDown className="size-5 text-red-400" />
+                        )}{" "}
+                        {dataForCard.lastShift?.quantityChange || "0%"}{" "}
+                        <span className="text-slate-600">from previous </span>
+                    </p> */}
+                </Card>
+                <Card className="p-4 relative shadow-s hover:shadow-lg transition-shadow group ">
+                    <div className="flex items-start justify-between mb-4 py-1">
+                        <div className="bg-green-50 p-3 rounded-xl flex gap-2">
+                            <AlarmClock className="size-6 text-red-500" />
+                            <p className="text-md font-semibold text-slate-800 mb-1">
+                                Credit Overdue Accounts
+                            </p>
+                        </div>
+                        <ArrowUpRight className="size-5 text-slate-400 transition-colors group-hover:text-orange-500" />
+                    </div>
+                    <h1 className="text-2xl font-bold text-slate-800 px-4">
+                        {totalOverDueCredits.toLocaleString() || 0} Accounts
+                    </h1>
+                    {/* <p
+                        className={`text-sm flex gap-1 ${dataForCard.lastShift.vehicleChange[0] == "+"
+                            ? "text-green-600"
+                            : "text-red-600"
+                            } px-4`}
+                    >
+                        {" "}
+                        {dataForCard.lastShift.vehicleChange[0] == "+" ? (
+                            <TrendingUp className="size-5 text-green-400" />
+                        ) : (
+                            <TrendingDown className="size-5 text-red-400" />
+                        )}{" "}
+                        {dataForCard.lastShift?.vehicleChange || "0%"}{" "}
+                        <span className="text-slate-600">from previous </span>
+                    </p> */}
                 </Card>
             </div>
 

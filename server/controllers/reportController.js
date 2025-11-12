@@ -98,6 +98,47 @@ const getDashboardSummary = async (req, res) => {
             status: 'Active'
         });
 
+        const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+        
+                const pumps = await Pump.find().populate('tankId', 'tankNumber fuelType').lean();
+        
+                const pumpSales = await Sale.aggregate([
+                    { $match: { date: { $gte: today, $lt: tomorrow } } },
+                    {
+                        $group: {
+                            _id: '$pumpId',
+                            todaySales: { $sum: '$totalAmount' },
+                            todaySalesQty: { $sum: '$quantity' }
+                        }
+                    }
+                ]);
+        
+                const salesMap = {};
+                pumpSales.forEach(s => {
+                    salesMap[s._id.toString()] = {
+                        amount: s.todaySales,
+                        quantity: s.todaySalesQty
+                    };
+                });
+        
+                const response = pumps.map(pump => {
+                    const sales = salesMap[pump._id.toString()] || { amount: 0, quantity: 0 };
+                    return {
+                        id: pump._id,
+                        name: pump.pumpNumber,
+                        type: pump.tankId?.fuelType || 'Unknown',
+                        tank: `Tank ${pump.tankId?.tankNumber || 'N/A'}`,
+                        status: pump.status === 'active' ? 'Active' : 'Maintenance',
+                        todaySalesAmount: sales.amount,
+                        todaySalesQuantity: sales.quantity,
+                        color: pump.status === 'active' ? 'emerald' : 'orange'
+                    };
+                });
+        
+
         res.status(200).json({
             success: true,
             data: {
@@ -112,7 +153,8 @@ const getDashboardSummary = async (req, res) => {
                     staffUtilization: totalStaff === 0 ? 100 : ((activeStaff / totalStaff) * 100).toFixed(2) + '%',
                     startTime: lastShift.startTime,
                     endTime: lastShift.endTime,
-                    tankLevels: tankLevels
+                    tankLevels: tankLevels,
+                    todayPumpSales: response
                 },
                 previousShift: {
                     revenue: prevStats.totalSalesAmount,
