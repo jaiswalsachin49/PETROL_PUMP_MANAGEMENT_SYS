@@ -109,7 +109,7 @@ reconciliationController – Fuel reconciliation
 
 reportController – Analytics & reports
 
-📡 API Response Format
+### 📡 API Response Format
 Success:
 {
   "success": true,
@@ -123,7 +123,7 @@ Error:
   "error": "Detailed error"
 }
 
-🧠 Advanced Features
+### 🧠 Advanced Features
 1️⃣ Pagination
 
 Backend: GET /api/sales?page=2&limit=50
@@ -192,14 +192,14 @@ Forms: React Hook Form + Yup
 
 Data: SearchBar, FilterBar, Pagination
 
-🔐 Security & Access Control
+### 🔐 Security & Access Control
 🧾 Role-Based Access (RBAC)
 Role	Permissions
 Admin	Full access, user & system management
 Manager	Operations, reports, reconciliation
 Accountant	Finance, expenses, credit
 Employee	Record sales, view shifts
-🔒 Authentication
+### 🔒 Authentication
 
 JWT-based tokens (24h expiry)
 
@@ -211,7 +211,7 @@ Rate limiting (100 requests / 15 min)
 
 Helmet & CORS protection
 
-📊 Key Features & Business Benefits
+### 📊 Key Features & Business Benefits
 Core Modules
 
 Shift & Sales Management
@@ -234,7 +234,7 @@ Benefits
 ✅ Accurate revenue tracking
 ✅ Reduced fuel theft (up to 90%)
 
-⚙️ Implementation Guide
+### ⚙️ Implementation Guide
 🖥️ Backend Setup
 npm install
 npm run dev
@@ -251,20 +251,20 @@ Import sample data:
 
 node import-atlas-data.js
 
-💻 Frontend Setup
+### 💻 Frontend Setup
 npx create-react-app petrol-pump-frontend
 npm install react-router-dom axios @reduxjs/toolkit react-redux recharts react-hook-form yup tailwindcss @shadcn/ui
 npm start
 
-☁️ Deployment
+### ☁️ Deployment
 
-Backend: Heroku
+Backend: Railway
 
 Frontend: Vercel
 
 Database: MongoDB Atlas (Cloud-hosted, auto backups)
 
-🧪 Testing & QA
+### 🧪 Testing & QA
 
 API Testing: Postman
 
@@ -272,14 +272,7 @@ Frontend Testing: Jest, React Testing Library, Cypress
 
 Compatibility: Chrome, Firefox, Safari, Edge
 
-Responsiveness: Desktop, Tablet, Mobile
-
-🔮 Future Enhancements
-Phase	Planned Features
-Q1 2026	Mobile App (React Native), Biometric Login
-Q2 2026	AI-based Sales Forecasting, Supplier Auto-Orders
-Q3 2026	Payment Gateway Integration, Franchise Support
-📚 Appendix
+### 📚 Appendix
 A. API Reference
 
 /api/auth, /api/sales, /api/shifts, /api/customers, /api/transactions, /api/expenses, /api/credit, /api/reconciliation
@@ -298,7 +291,7 @@ Credit Sale: Deferred payment sale
 
 Reconciliation: Matching book vs physical stock
 
-🧾 Conclusion
+## 🧾 Conclusion
 
 The Petrol Pump Management System represents a scalable, secure, and intelligent solution for modern fuel station operations.
 
