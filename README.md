@@ -1,115 +1,82 @@
 # ⛽ Petrol Pump Management System
-A Full-Stack MERN Application with Advanced Features
 
-The Petrol Pump Management System is a comprehensive web-based solution designed to automate and streamline fuel station operations. Built using the MERN stack (MongoDB, Express.js, React.js, Node.js), it provides real-time monitoring, advanced analytics, and secure role-based access control for efficient management.
+A Full‑Stack MERN application for automating and managing fuel station operations — inventory, pumps, shifts, sales, reconciliation and role‑based access.
 
-🚀 ## Executive Summary
+---
 
-15 Backend Controllers with 100+ REST API Endpoints
+## Contents
+- [Overview](#overview)
+- [Features](#features)
+- [Architecture & Tech Stack](#architecture--tech-stack)
+- [Database Design (Core Collections)](#database-design-core-collections)
+- [API & Controllers](#api--controllers)
+- [Installation & Run](#installation--run)
+- [Environment](#environment)
+- [Deployment](#deployment)
+- [Contact](#contact)
+- [License](#license)
 
-11 MongoDB Collections with optimized schema
+---
 
-20 Responsive Frontend Pages
+## Overview
+A scalable MERN (MongoDB, Express, React, Node) system with real‑time dashboards, reports and RBAC (Admin, Manager, Accountant, Employee). Built for reliability, security and easy deployment.
 
-50+ Reusable Components
+---
 
-Advanced Features: Pagination, Filtering, Searching
+## Features
+- Role‑based access control (Admin / Manager / Accountant / Employee)
+- Shift and sales management (cash & credit)
+- Tank & pump monitoring, dip readings, nozzle control
+- Inventory, purchases, suppliers, and reconciliation
+- Real‑time analytics and interactive charts
+- Pagination, filtering, full‑text search
+- JWT authentication, HTTP‑only cookies, bcrypt password hashing
+- Exportable reports and reconciliation tools
 
-Role-Based Access Control for Admin, Manager, Accountant & Employee
+---
 
-Real-time Analytics Dashboard with interactive charts
+## Architecture & Tech Stack
+- Backend: Node.js, Express.js, Mongoose
+- Frontend: React, React Router, Redux Toolkit / Context API, Tailwind CSS, shadcn/ui
+- Database: MongoDB Atlas
+- Charts: Recharts
+- Forms: React Hook Form + Yup
+- Auth: JWT (HTTP‑only cookies)
+- Security: bcrypt, helmet, cors, rate limiting
+- Testing: Jest, React Testing Library, Cypress, Postman
 
- ## 🏗️ System Architecture
-### 🧩 Technology Stack
-Layer	Technology
-Backend	Node.js, Express.js, Mongoose
-Database	MongoDB Atlas
-Frontend	React.js, Redux Toolkit / Context API, Tailwind CSS, Shadcn/UI
-Charts	Recharts
-Forms	React Hook Form + Yup
-Authentication	JWT
-Security	bcrypt, helmet, cors
-Testing	Postman, Jest, Cypress
-Deployment	Backend: Heroku • Frontend: Vercel
-### 🏛️  Architecture Overview
+Three‑tier architecture:
+Frontend (React) → REST API (Express) → Database (MongoDB)
 
-Three-tier architecture:
+---
 
-Frontend (React)
-   ↓  REST API
-Backend (Express.js)
-   ↓  ODM
-Database (MongoDB Atlas)
+## Database Design (Core Collections)
+- users — auth, roles
+- employees — profiles, attendance
+- tanks — fuel storage, dip readings
+- pumps — dispensers, nozzles
+- shifts — shift logs, readings
+- sales — transactions (cash/credit)
+- customers — account & credit data
+- suppliers — vendors
+- purchases — fuel/item receipts
+- inventory — non‑fuel stock
+- transactions — financial records
 
-🗃️ Database Design
-📑 Core Collections
+Relationships: User ↔ Employee (1:1), Tank → Pump, Shift → Sale, Customer → Sale (1:N)
 
-users – Authentication, role management
+---
 
-employees – Employee profiles, attendance
+## API & Controllers
+Key controllers (examples):
+- authController — login, logout, refresh, RBAC middleware
+- employeeController, customerController, supplierController
+- tankController, pumpController, shiftController
+- saleController, purchaseController, inventoryController
+- transactionController, expenseController, creditController
+- reconciliationController, reportController
 
-tanks – Fuel storage management
-
-pumps – Fuel dispensing units
-
-shifts – Shift tracking
-
-sales – Fuel transactions
-
-customers – Credit & account details
-
-suppliers – Vendor details
-
-purchases – Fuel and item orders
-
-inventory – Non-fuel items tracking
-
-transactions – Financial records
-
-🔗 Relationships
-
-User ↔ Employee (1:1)
-
-Tank → Pump, Shift → Sale, Customer → Sale (1:N)
-
-Embedded docs: Attendance, Dip Readings, Nozzles, Shift Readings
-
-## ⚙️ Backend API Architecture
-### 🔧 Controllers Overview
-
-authController – Authentication & authorization
-
-employeeController – Employee CRUD
-
-customerController – Customer management
-
-supplierController – Supplier management
-
-inventoryController – Inventory tracking
-
-tankController – Fuel level management
-
-pumpController – Pump & nozzle control
-
-shiftController – Shift operations
-
-saleController – Sales management
-
-purchaseController – Purchase tracking
-
-transactionController – Financial operations
-
-attendanceController – Attendance tracking
-
-expenseController – Expense management
-
-creditController – Credit reports
-
-reconciliationController – Fuel reconciliation
-
-reportController – Analytics & reports
-
-### 📡 API Response Format
+Standard response format:
 Success:
 {
   "success": true,
@@ -123,189 +90,39 @@ Error:
   "error": "Detailed error"
 }
 
-### 🧠 Advanced Features
-1️⃣ Pagination
+---
 
-Backend: GET /api/sales?page=2&limit=50
+## Installation & Run
 
-Frontend: React Pagination Component
+Backend
+1. cd backend
+2. npm install
+3. copy .env.example → .env and fill values
+4. npm run dev
 
-2️⃣ Filtering
+Frontend
+1. cd new_client (or frontend)
+2. npm install
+3. npm start
 
-Filter by date, fuel type, sale type, customer, etc.
-Supports multi-filter queries and dynamic combinations.
+Notes:
+- Rebuild Tailwind after config changes: npm run build:css (or your setup)
+- Seed sample data (if provided): node import-atlas-data.js
 
-3️⃣ Searching
+---
 
-Full-text search with MongoDB text indexes.
-Supports real-time search with debounce optimization in React.
 
-4️⃣ Combined Example
-GET /api/sales?search=diesel&startDate=2025-10-01&endDate=2025-10-31&saleType=credit&page=1&limit=50
+## Deployment
+- Backend: Railway 
+- Frontend: Vercel
+- Database: MongoDB Atlas (backup & scaling)
 
-🎨 Frontend Architecture
-🗂️ Page Structure (20 Pages / 6 Categories)
+---
 
-Authentication & Core
+## Contact
+Sachin Jaiswal — sj586997@gmail.com
 
-Login
+---
 
-Layout
-
-Dashboard & Reports
-3. Dashboard
-4. Reports
-5. Analytics
-
-Operations Management
-6. Shifts
-7. Sales
-8. Tanks
-9. Pumps
-10. Attendance
-
-Masters Management
-11. Customers
-12. Employees
-13. Suppliers
-14. Inventory
-15. Purchases
-
-Financial Management
-16. Transactions
-17. Expenses
-18. Credit Management
-
-Settings & Admin
-19. Reconciliation
-20. Settings
-
-🧩 Components
-
-Layout: Navbar, Sidebar, Footer
-
-UI: Button, Modal, Card, Tabs, Table
-
-Charts: AreaChart, LineChart, PieChart
-
-Forms: React Hook Form + Yup
-
-Data: SearchBar, FilterBar, Pagination
-
-### 🔐 Security & Access Control
-🧾 Role-Based Access (RBAC)
-Role	Permissions
-Admin	Full access, user & system management
-Manager	Operations, reports, reconciliation
-Accountant	Finance, expenses, credit
-Employee	Record sales, view shifts
-### 🔒 Authentication
-
-JWT-based tokens (24h expiry)
-
-bcrypt (10 salt rounds)
-
-HTTP-only cookies
-
-Rate limiting (100 requests / 15 min)
-
-Helmet & CORS protection
-
-### 📊 Key Features & Business Benefits
-Core Modules
-
-Shift & Sales Management
-
-Tank & Pump Monitoring
-
-Customer Credit & Transactions
-
-Attendance & Expense Tracking
-
-Fuel Reconciliation
-
-Advanced Analytics
-
-Benefits
-
-✅ 70% reduction in paperwork
-✅ 50% faster shift closing
-✅ Real-time inventory visibility
-✅ Accurate revenue tracking
-✅ Reduced fuel theft (up to 90%)
-
-### ⚙️ Implementation Guide
-🖥️ Backend Setup
-npm install
-npm run dev
-
-
-Env Example:
-
-MONGO_URI=mongodb+srv://...
-JWT_SECRET=your_secret
-PORT=5000
-
-
-Import sample data:
-
-node import-atlas-data.js
-
-### 💻 Frontend Setup
-npx create-react-app petrol-pump-frontend
-npm install react-router-dom axios @reduxjs/toolkit react-redux recharts react-hook-form yup tailwindcss @shadcn/ui
-npm start
-
-### ☁️ Deployment
-
-Backend: Railway
-
-Frontend: Vercel
-
-Database: MongoDB Atlas (Cloud-hosted, auto backups)
-
-### 🧪 Testing & QA
-
-API Testing: Postman
-
-Frontend Testing: Jest, React Testing Library, Cypress
-
-Compatibility: Chrome, Firefox, Safari, Edge
-
-### 📚 Appendix
-A. API Reference
-
-/api/auth, /api/sales, /api/shifts, /api/customers, /api/transactions, /api/expenses, /api/credit, /api/reconciliation
-
-B. Database Schema Reference
-
-11 Collections – Users, Employees, Tanks, Pumps, Shifts, Sales, Customers, Suppliers, Purchases, Inventory, Transactions
-
-C. Glossary
-
-Dip Reading: Manual measurement of fuel level
-
-Shift: Defined work period (e.g., 8 hrs)
-
-Credit Sale: Deferred payment sale
-
-Reconciliation: Matching book vs physical stock
-
-## 🧾 Conclusion
-
-The Petrol Pump Management System represents a scalable, secure, and intelligent solution for modern fuel station operations.
-
-Highlights:
-
-15+ Controllers | 100+ APIs | 11 Collections
-
-20+ Pages | 50+ Components
-
-Real-time analytics & enterprise-grade scalability
-
-👨‍💻 Developer
-
-Name: Sachin Jaiswal
-Email: sj586997@gmail.com
-Version: 1.0
-Last Updated: October 30, 2025
+## License
+MIT — see LICENSE file for details.
