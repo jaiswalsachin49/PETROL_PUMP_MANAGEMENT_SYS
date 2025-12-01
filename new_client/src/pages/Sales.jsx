@@ -569,7 +569,7 @@ export default function Sales() {
                                                 </td>
                                             </tr>
                                         ) : (
-                                            filteredSales.map((sale) => (
+                                            currentSales.map((sale) => (
                                                 <tr key={sale._id} className="hover:bg-slate-50 transition-colors">
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                                                         {sale.saleId || 'N/A'}
