@@ -23,15 +23,23 @@ import {
     DollarSign,
     ArrowUpRight,
     User,
+    Users,
     Fuel,
     Droplets,
     Zap,
     Clock,
     TrendingDown,
     TrendingUp,
-    AlarmClock
+    AlarmClock,
+    AlertCircle,
+    Play,
+    ShoppingCart,
+    Plus,
+    RefreshCw,
+    CreditCard
 } from "lucide-react";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { Link } from "react-router-dom";
 
 export default function Dashboard() {
     const [dataForCard, setDataForCard] = useState(null);
@@ -52,74 +60,46 @@ export default function Dashboard() {
     const [recentActivity, setRecentActivity] = useState([]);
     const [recentLoading, setRecentLoading] = useState(true);
 
-    const [todaySales,setTodaySales] = useState(0)
-
+    const [todaySales, setTodaySales] = useState(0)
     const [totalOverDueCredits, setTotalOverDueCredits] = useState(0);
-
     const [todayTotalQuantity, setTodayTotalQuantity] = useState(0);
+    const [totalFuelStock, setTotalFuelStock] = useState(0);
 
     const fuelColors = {
-        Petrol: "#f97316",
-        Diesel: "#10b981",
-        CNG: "#f59e0b",
+        Petrol: "#3b82f6", // Blue
+        Diesel: "#10b981", // Emerald
+        CNG: "#f59e0b",    // Amber
         Other: "#6b7280",
     };
 
+    const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+
     // Sample data for testing charts
     const sampleHourlyData = [
-        { date: "20/10/2025", sales: 1200 },
-        { date: "21/10/2025", sales: 1500 },
-        { date: "22/10/2025", sales: 900 },
-        { date: "23/10/2025", sales: 2000 },
-        { date: "24/10/2025", sales: 1800 },
+        { date: "Mon", sales: 1200 },
+        { date: "Tue", sales: 1500 },
+        { date: "Wed", sales: 900 },
+        { date: "Thu", sales: 2000 },
+        { date: "Fri", sales: 1800 },
+        { date: "Sat", sales: 2200 },
+        { date: "Sun", sales: 1600 },
     ];
 
     const sampleFuelDistribution = [
-        { name: "Petrol", percentage: 50, color: "#8b5cf6" },
-        { name: "Diesel", percentage: 30, color: "#10b981" },
-        { name: "CNG", percentage: 20, color: "#f59e0b" },
+        { name: "Petrol", percentage: 45, color: "#3b82f6" },
+        { name: "Diesel", percentage: 40, color: "#10b981" },
+        { name: "Premium", percentage: 15, color: "#f59e0b" },
     ];
 
-    const sampleWeeklyPerformance = [
-        { week: "Mon", revenue: 52000, target: 80000, quantity: 1200 },
-        { week: "Tue", revenue: 61000, target: 80000, quantity: 1350 },
-        { week: "Wed", revenue: 48000, target: 80000, quantity: 1100 },
-        { week: "Thu", revenue: 75000, target: 80000, quantity: 1500 },
-        { week: "Fri", revenue: 69000, target: 80000, quantity: 1400 },
-        { week: "Sat", revenue: 82000, target: 80000, quantity: 1600 },
-        { week: "Sun", revenue: 60000, target: 80000, quantity: 1300 },
-    ];
-
-    const sampleTankLevels = [
-        {
-            name: "PetrolTank1",
-            tankNumber: 1,
-            fuelType: "Petrol",
-            current: 3500,
-            capacity: 5000,
-            percentage: 70,
-            status: "good",
-            lastUpdated: "2025-10-24T08:00:00.000Z",
-        },
-        {
-            name: "DieselTank2",
-            tankNumber: 2,
-            fuelType: "Diesel",
-            current: 1200,
-            capacity: 5000,
-            percentage: 24,
-            status: "low",
-            lastUpdated: "2025-10-24T08:15:00.000Z",
-        },
-    ];
     useEffect(() => {
         dashboardService
             .getDashboardSummary()
             .then((res) => {
                 setDataForCard(res.data.data);
                 setCardLoading(false);
-                setTodaySales(res.data.data.todayPumpSales.map(sale=> sale.todaySalesAmount).reduce((a,b)=> a+b,0))
-                setTodayTotalQuantity(res.data.data.todayPumpSales.map(sale=> sale.todaySalesQuantity).reduce((a,b)=> a+b,0))
+                const pumpSales = res.data.data.todayPumpSales || [];
+                setTodaySales(pumpSales.map(sale => sale.todaySalesAmount || 0).reduce((a, b) => a + b, 0))
+                setTodayTotalQuantity(pumpSales.map(sale => sale.todaySalesQuantity || 0).reduce((a, b) => a + b, 0))
             })
             .catch((error) => console.log(error));
 
@@ -162,6 +142,7 @@ export default function Dashboard() {
                                 : "bg-red-500",
                 }));
                 setTanksLevel(tanks);
+                setTotalFuelStock(tanks.reduce((acc, curr) => acc + curr.current, 0));
                 setTankLoading(false);
             })
             .catch((error) => console.log(error));
@@ -175,13 +156,13 @@ export default function Dashboard() {
             .catch((error) => console.log(error));
 
         dashboardService
-            .getRecentActivity(10)
+            .getRecentActivity(5)
             .then((res) => {
                 setRecentActivity(res.data.data);
                 setRecentLoading(false);
             })
             .catch((error) => console.log(error));
-        
+
         creditService
             .getOverdueCredits()
             .then((res) => {
@@ -194,374 +175,318 @@ export default function Dashboard() {
         cardLoading ||
         !dataForCard ||
         hourlyLoading ||
-        !hourlyData.length ||
         fuelLoading ||
-        !fuelDistribution.length ||
         tankLoading ||
-        !tanksLevel ||
-        weeklyLoading ||
-        !weeklyPerformance
+        weeklyLoading
     )
         return (
-            <div className="flex justify-center items-center min-h-screen">
+            <div className="flex justify-center items-center min-h-screen bg-slate-50">
                 <LoadingSpinner />
             </div>
         );
 
     return (
-        <div className="flex-1 bg-gradient-to-br from-orange-25 via-orange-50 to-orange-70 min-h-screen">
+        <div className="flex-1 bg-gradient-to-br from-orange-50 via-orange-50 to-orange-100 min-h-screen pb-10">
+            {/* Header */}
             <div className="bg-white/80 backdrop-blur-xl border-b border-slate-200 sticky top-0 z-10">
-                {" "}
                 <div className="px-8 py-4">
-                    {" "}
                     <div className="flex items-center justify-between">
-                        {" "}
-                        <div className="flex items-center gap-4">
-                            {" "}
+                        <div className="flex items-center gap-4 w-full justify-between">
                             <div>
-                                {" "}
                                 <h1 className="text-slate-900 flex items-center gap-2">
-                                    {" "}
-                                    Dashboard{" "}
-                                    <div className="size-2 bg-emerald-500 rounded-full animate-pulse"></div>{" "}
-                                </h1>{" "}
+                                    Dashboard
+                                    <div className="size-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                                </h1>
                                 <p className="text-sm text-slate-600">
                                     Real-time fuel station monitoring
-                                </p>{" "}
-                            </div>{" "}
-                        </div>{" "}
-                    </div>{" "}
-                </div>{" "}
-            </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 my-8 px-8">
-                <Card className="p-4 relative shadow-s hover:shadow-lg transition-shadow group">
-                    <div className="flex items-start justify-between mb-4 py-1">
-                        <div className="bg-orange-50 p-3 rounded-xl flex gap-2">
-                            <DollarSign className="size-6 text-orange-500" />
-                            <p className="text-md font-semibold text-slate-800 mb-1">
-                                Today's Revenue
-                            </p>
-                        </div>
-                        <ArrowUpRight className="size-5 text-slate-400 transition-colors group-hover:text-orange-500" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-800 px-4">
-                        ₹{todaySales.toLocaleString()}
-                    </h1>
-                    <p
-                        className={`text-sm flex gap-1 items-center px-4`}
-                    >
-                        { new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) }
-                    </p>
-                </Card>
-                <Card className="p-4 relative shadow-s hover:shadow-lg transition-shadow group ">
-                    <div className="flex items-start justify-between mb-4 py-1">
-                        <div className="bg-blue-50 p-3 rounded-xl flex gap-2">
-                            <User className="size-6 text-blue-500" />
-                            <p className="text-md font-semibold text-slate-800 mb-1">
-                                Active Staff
-                            </p>
-                        </div>
-                        <ArrowUpRight className="size-5 text-slate-400 transition-colors group-hover:text-orange-500" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-800 px-4">
-                        {dataForCard.lastShift?.activeStaff?.toLocaleString() || 0}
-                    </h1>
-                    <p className="text-sm text-slate-600 px-4">
-                        {dataForCard.lastShift?.staffUtilization || "0%"} utilization
-                    </p>
-                </Card>
-                <Card className="p-4 relative shadow-s hover:shadow-lg transition-shadow group ">
-                    <div className="flex items-start justify-between mb-4 py-1">
-                        <div className="bg-red-50 p-3 rounded-xl flex gap-2">
-                            <Fuel className="size-6 text-green-500" />
-                            <p className="text-md font-semibold text-slate-800 mb-1">
-                                Today's Fuel Dispensed
-                            </p>
-                        </div>
-                        <ArrowUpRight className="size-5 text-slate-400 transition-colors group-hover:text-orange-500" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-800 px-4">
-                        {todayTotalQuantity.toLocaleString() || 0} L
-                    </h1>
-                    {/* <p
-                        className={`text-sm flex gap-1 ${dataForCard.lastShift.quantityChange[0] == "+"
-                            ? "text-green-600"
-                            : "text-red-600"
-                            } px-4`}
-                    >
-                        {" "}
-                        {dataForCard.lastShift.quantityChange[0] == "+" ? (
-                            <TrendingUp className="size-5 text-green-400" />
-                        ) : (
-                            <TrendingDown className="size-5 text-red-400" />
-                        )}{" "}
-                        {dataForCard.lastShift?.quantityChange || "0%"}{" "}
-                        <span className="text-slate-600">from previous </span>
-                    </p> */}
-                </Card>
-                <Card className="p-4 relative shadow-s hover:shadow-lg transition-shadow group ">
-                    <div className="flex items-start justify-between mb-4 py-1">
-                        <div className="bg-green-50 p-3 rounded-xl flex gap-2">
-                            <AlarmClock className="size-6 text-red-500" />
-                            <p className="text-md font-semibold text-slate-800 mb-1">
-                                Credit Overdue Accounts
-                            </p>
-                        </div>
-                        <ArrowUpRight className="size-5 text-slate-400 transition-colors group-hover:text-orange-500" />
-                    </div>
-                    <h1 className="text-2xl font-bold text-slate-800 px-4">
-                        {totalOverDueCredits.toLocaleString() || 0} Accounts
-                    </h1>
-                    {/* <p
-                        className={`text-sm flex gap-1 ${dataForCard.lastShift.vehicleChange[0] == "+"
-                            ? "text-green-600"
-                            : "text-red-600"
-                            } px-4`}
-                    >
-                        {" "}
-                        {dataForCard.lastShift.vehicleChange[0] == "+" ? (
-                            <TrendingUp className="size-5 text-green-400" />
-                        ) : (
-                            <TrendingDown className="size-5 text-red-400" />
-                        )}{" "}
-                        {dataForCard.lastShift?.vehicleChange || "0%"}{" "}
-                        <span className="text-slate-600">from previous </span>
-                    </p> */}
-                </Card>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6 px-8">
-                <Card className="col-span-2 px-8 py-4  shadow-lg hover:shadow-xl transition-shadow">
-                    <h3 className="flex items-center gap-2 mb-4 text-slate-900">
-                        <Zap className="text-orange-500 size-6" /> Shift Sales Trend
-                    </h3>
-                    <ResponsiveContainer width="100%" height={350}>
-                        <AreaChart data={hourlyData}>
-                            <defs>
-                                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.5} />
-                                    <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid stroke="#d1d5db" strokeDasharray="3 3" />
-                            <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-                            <YAxis tick={{ fontSize: 12 }} />
-                            <Tooltip />
-                            <Area
-                                type="monotone"
-                                dataKey="sales"
-                                stroke="#f97316"
-                                strokeWidth={2}
-                                animationDuration={2000}
-                                animationEasing="ease-in-out"
-                                name="Sales (₹)"
-                                fill="url(#colorRevenue)"
-                            />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </Card>
-
-                <Card className="col-span-1 p-4 shadow-lg hover:shadow-xl transition-shadow">
-                    <h3 className="flex items-center gap-2 mb-4 text-sm text-slate-600">
-                        <Droplets className="text-orange-500" /> Fuel Distribution
-                    </h3>
-                    <ResponsiveContainer width="100%" height={250}>
-                        <PieChart>
-                            <Pie
-                                data={fuelDistribution}
-                                dataKey="percentage"
-                                nameKey="name"
-                                outerRadius={80}
-                                innerRadius={40}
-                                paddingAngle={5}
-                            >
-                                {fuelDistribution.map((entry, index) => (
-                                    <Cell
-                                        key={`cell-${index}`}
-                                        fill={fuelColors[entry.name] || "#6b7280"}
-                                    />
-                                ))}
-                            </Pie>
-                            <Tooltip />
-                        </PieChart>
-                    </ResponsiveContainer>
-                    <div className="space-y-3 mt-4">
-                        {fuelDistribution.map((item, index) => (
-                            <div key={index} className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div
-                                        className="size-3 rounded-full"
-                                        style={{
-                                            backgroundColor: fuelColors[item.name] || "#6b7280",
-                                        }}
-                                    ></div>
-                                    <span className="text-sm text-slate-700">{item.name}</span>
-                                </div>
-                                <span className="text-sm font-medium text-slate-900">
-                                    {item.percentage}%
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-slate-600 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
+                                    {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                                 </span>
                             </div>
-                        ))}
+                        </div>
                     </div>
-                </Card>
+                </div>
             </div>
 
-            <div className="my-8 px-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="p-4 shadow-lg hover:shadow-xl transition-shadow">
-                    <h3 className="text-slate-900 font-semibold">Weekly Revenue</h3>
-                    <p className="text-sm text-slate-600">Revenue vs Target</p>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart
-                            data={weeklyPerformance}
-                            margin={{ top: 20, right: 20, left: 0, bottom: 5 }}
-                        >
-                            <CartesianGrid
-                                stroke="#d1d5db"
-                                strokeDasharray="3 3"
-                                vertical={false}
-                            />
-                            <XAxis
-                                dataKey="week"
-                                stroke="#6b7280"
-                                fontSize={12}
-                                tickLine={false}
-                                axisLine={false}
-                            />
-                            <YAxis
-                                stroke="#6b7280"
-                                fontSize={12}
-                                tickLine={false}
-                                axisLine={false}
-                            />
-                            <Tooltip
-                                contentStyle={{
-                                    backgroundColor: "#fff",
-                                    border: "none",
-                                    borderRadius: "12px",
-                                    boxShadow: "0 10px 40px rgba(0,0,0,0.1)",
-                                }}
-                                formatter={(value) => `₹${value.toLocaleString()}`}
-                            />
-                            <Legend />
-                            <Bar
-                                dataKey="revenue"
-                                fill="#f97316"
-                                radius={[8, 8, 0, 0]}
-                                name="Revenue"
-                            />
-                            <Bar
-                                dataKey="target"
-                                fill="#10b981"
-                                radius={[8, 8, 0, 0]}
-                                name="Target"
-                            />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </Card>
-
-                <Card className="border-0 shadow-lg shadow-slate-200/50 bg-white/80 backdrop-blur">
-                    <div className="p-6">
-                        <div className="mb-6">
-                            <h3 className="text-slate-900 font-semibold">Tank Levels</h3>
-                            <p className="text-sm text-slate-600">
-                                Real-time inventory status
-                            </p>
+            <div className="p-8 space-y-8">
+                {/* Top Stats Cards */}
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {/* Today's Sales */}
+                    <Card className="p-5 border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <p className="text-sm font-medium text-slate-500">Today's Sales</p>
+                                <h3 className="text-2xl font-bold text-slate-900 mt-1">₹{todaySales.toLocaleString()}</h3>
+                            </div>
+                            <div className="p-2 bg-orange-100 rounded-lg">
+                                <DollarSign className="w-6 h-6 text-orange-600" />
+                            </div>
                         </div>
+                        <div className="flex items-center gap-1 text-xs font-medium text-emerald-600 bg-emerald-50 w-fit px-2 py-1 rounded-full">
+                            <TrendingUp className="w-3 h-3" />
+                            <span>Today's Revenue</span>
+                        </div>
+                    </Card>
 
-                        <div className="space-y-5">
-                            {tanksLevel.map((tank) => (
-                                <div key={tank._id}>
-                                    <div className="flex justify-between items-center mb-2">
-                                        <span className="text-sm text-slate-700 font-medium">
-                                            {tank.name}
-                                        </span>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-sm font-semibold text-slate-900">
-                                                {tank.percentage}%
-                                            </span>
-                                            <Badge
-                                                variant="outline"
-                                                className={`text-xs capitalize ${tank.status === "good"
-                                                    ? "bg-emerald-200 text-emerald-700 border-emerald-200"
-                                                    : tank.status === "low"
-                                                        ? "bg-yellow-200 text-yellow-700 border-yellow-200"
-                                                        : "bg-red-200 text-red-700 border-red-200"
-                                                    }`}
-                                            >
-                                                {tank.status}
-                                            </Badge>
-                                        </div>
-                                    </div>
+                    {/* Active Shift */}
+                    <Card className="p-5 border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <p className="text-sm font-medium text-slate-500">Active Staff</p>
+                                <h3 className="text-xl font-bold text-slate-900 mt-1">{dataForCard.lastShift?.activeStaff?.toLocaleString() || 0}</h3>
+                                <p className="text-xs text-slate-400 mt-1">On Duty</p>
+                            </div>
+                            <div className="p-2 bg-blue-100 rounded-lg">
+                                <Users className="w-6 h-6 text-blue-600" />
+                            </div>
+                        </div>
+                        <div className="w-full bg-slate-100 h-1.5 rounded-full mt-2 overflow-hidden">
+                            <div className="bg-blue-500 h-full rounded-full" style={{ width: `${dataForCard.lastShift?.staffUtilization || 0}%` }}></div>
+                        </div>
+                    </Card>
 
-                                    <div className="relative w-full h-3 bg-slate-100 rounded-full overflow-hidden">
-                                        <div
-                                            className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ${tank.status === "good"
-                                                ? "bg-gradient-to-r from-emerald-500 to-teal-500"
-                                                : tank.status === "low"
-                                                    ? "bg-gradient-to-r from-yellow-500 to-orange-500"
-                                                    : "bg-gradient-to-r from-red-500 to-rose-500"
-                                                }`}
-                                            style={{ width: `${tank.percentage}%` }}
-                                        />
+                    {/* Total Fuel Stock */}
+                    <Card className="p-5 border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <p className="text-sm font-medium text-slate-500">Total Fuel Stock</p>
+                                <h3 className="text-2xl font-bold text-slate-900 mt-1">{totalFuelStock.toLocaleString()} L</h3>
+                            </div>
+                            <div className="p-2 bg-emerald-100 rounded-lg">
+                                <Fuel className="w-6 h-6 text-emerald-600" />
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs font-medium text-slate-600 bg-slate-50 w-fit px-2 py-1 rounded-full">
+                            <Droplets className="w-3 h-3" />
+                            <span>Across all tanks</span>
+                        </div>
+                    </Card>
+
+                    {/* Overdue Payments */}
+                    <Card className="p-5 border-0 shadow-sm hover:shadow-md transition-shadow bg-white">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <p className="text-sm font-medium text-slate-500">Overdue Accounts</p>
+                                <h3 className="text-2xl font-bold text-slate-900 mt-1">{totalOverDueCredits}</h3>
+                            </div>
+                            <div className="p-2 bg-red-100 rounded-lg">
+                                <AlertCircle className="w-6 h-6 text-red-600" />
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-1 text-xs font-medium text-red-600 bg-red-50 w-fit px-2 py-1 rounded-full">
+                            <span>Action Required</span>
+                        </div>
+                    </Card>
+                </div>
+
+                {/* Charts Row 1 */}
+                <div className="grid lg:grid-cols-3 gap-6">
+                    {/* Weekly Sales Trend */}
+                    <Card className="lg:col-span-2 p-6 border-0 shadow-sm bg-white">
+                        <h3 className="text-lg font-semibold text-slate-900 mb-6">Weekly Sales Trend</h3>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <AreaChart data={hourlyData}>
+                                <defs>
+                                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.25} />
+                                        <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
+                                <Tooltip
+                                    contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    itemStyle={{ color: '#1e293b' }}
+                                />
+                                <Area
+                                    type="monotone"
+                                    dataKey="sales"
+                                    stroke="#f97316"
+                                    strokeWidth={2}
+                                    fillOpacity={1}
+                                    fill="url(#colorRevenue)"
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                        <div className="flex justify-center gap-6 mt-4">
+                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                                <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                                Sales (₹)
+                            </div>
+                            {/* Removed hardcoded Target (₹) legend */}
+                        </div>
+                    </Card>
+
+                    {/* Fuel Distribution */}
+                    <Card className="p-6 border-0 shadow-sm bg-white">
+                        <h3 className="text-lg font-semibold text-slate-900 mb-6">Fuel Distribution</h3>
+                        <div className="h-[250px] relative">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={fuelDistribution}
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        paddingAngle={5}
+                                        dataKey="percentage"
+                                    >
+                                        {fuelDistribution.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={fuelColors[entry.name] || '#6b7280'} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                </PieChart>
+                            </ResponsiveContainer>
+                            {/* Center Text */}
+                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                <span className="text-3xl font-bold text-slate-900">
+                                    {fuelDistribution[0]?.percentage || 0}%
+                                </span>
+                                <span className="text-xs text-slate-500 font-medium uppercase tracking-wider">
+                                    {fuelDistribution[0]?.name || 'Fuel'}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="mt-6 space-y-3">
+                            {fuelDistribution.map((item, index) => (
+                                <div key={index} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: fuelColors[item.name] || '#6b7280' }}></div>
+                                        <span className="text-sm font-medium text-slate-700">{item.name}</span>
                                     </div>
-                                    <p className="text-xs text-slate-500 mt-1.5">
-                                        {tank.current.toLocaleString()}L /{" "}
-                                        {tank.capacity.toLocaleString()}L
-                                    </p>
+                                    <span className="text-sm font-bold text-slate-900">{item.percentage}%</span>
                                 </div>
                             ))}
                         </div>
-                    </div>
-                </Card>
-            </div>
+                    </Card>
+                </div>
 
-            <div className="my-8 px-8">
-                <Card className="border-0 shadow-lg shadow-slate-200/50 bg-white/80 backdrop-blur">
-                    <div className="p-6">
-                        <div className="mb-4 flex items-center gap-2">
-                            <Clock className="text-orange-500 w-4 h-4" />
-                            <h3 className="text-slate-900 font-semibold">Recent Activity</h3>
+                {/* Charts Row 2 & Quick Actions */}
+                <div className="grid lg:grid-cols-3 gap-6">
+                    {/* Monthly Revenue */}
+                    <Card className="lg:col-span-2 p-6 border-0 shadow-sm bg-white">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-semibold text-slate-900">Monthly Revenue</h3>
+                            <select className="text-sm border-slate-200 rounded-lg text-slate-600 focus:ring-orange-500">
+                                <option>Last 6 Months</option>
+                                <option>This Year</option>
+                            </select>
                         </div>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={weeklyPerformance} barSize={40}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                                <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
+                                <Tooltip
+                                    cursor={{ fill: '#fff7ed' }}
+                                    contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                />
+                                <Bar dataKey="revenue" fill="#f97316" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </Card>
+
+                    {/* Quick Actions */}
+                    <Card className="p-6 border-0 shadow-sm bg-white">
+                        <h3 className="text-lg font-semibold text-slate-900 mb-6">Quick Actions</h3>
                         <div className="space-y-3">
-                            {recentActivity.map((act) => (
-                                <div
-                                    key={act.id}
-                                    className="p-4 bg-slate-50 hover:bg-slate-100 rounded-lg transition flex justify-between items-center"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 bg-orange-100 text-orange-600 font-semibold rounded-full flex items-center justify-center">
-                                            {act.vehicle?.slice(0, 2).toUpperCase() || "RV"}
+                            <button className="w-full flex items-center gap-3 p-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl transition-colors font-medium shadow-sm">
+                                <Play className="w-5 h-5" />
+                                Start New Shift
+                            </button>
+                            <button className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 hover:bg-orange-50 text-slate-700 rounded-xl transition-colors font-medium">
+                                <ShoppingCart className="w-5 h-5 text-slate-500" />
+                                Record Sale
+                            </button>
+                            <button className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 hover:bg-orange-50 text-slate-700 rounded-xl transition-colors font-medium">
+                                <Plus className="w-5 h-5 text-slate-500" />
+                                Add Expense
+                            </button>
+                            <button className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 hover:bg-orange-50 text-slate-700 rounded-xl transition-colors font-medium">
+                                <RefreshCw className="w-5 h-5 text-slate-500" />
+                                Update Tank Reading
+                            </button>
+                        </div>
+                    </Card>
+                </div>
+
+                {/* Bottom Row: Alerts & Recent Transactions */}
+                <div className="grid lg:grid-cols-2 gap-6">
+                    {/* Alerts & Notifications */}
+                    <Card className="p-6 border-0 shadow-sm bg-white">
+                        <h3 className="text-lg font-semibold text-slate-900 mb-6">Alerts & Notifications</h3>
+                        <div className="space-y-4">
+                            {/* Logic to show alerts based on tank levels or overdue payments could be added here. For now, keeping static examples but they should ideally be dynamic. */}
+                            {tanksLevel.filter(t => t.status === 'low').map(tank => (
+                                <div key={tank._id} className="p-4 bg-orange-50 border border-orange-100 rounded-xl flex gap-4">
+                                    <div className="mt-1">
+                                        <AlertCircle className="w-5 h-5 text-orange-600" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-slate-900">Low Fuel Stock - {tank.name}</h4>
+                                        <p className="text-sm text-slate-600 mt-1">{tank.fuelType} level at {tank.percentage}%. Immediate restock required.</p>
+                                    </div>
+                                </div>
+                            ))}
+                            {totalOverDueCredits > 0 && (
+                                <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex gap-4">
+                                    <div className="mt-1">
+                                        <AlertCircle className="w-5 h-5 text-red-600" />
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-semibold text-slate-900">Payment Overdue</h4>
+                                        <p className="text-sm text-slate-600 mt-1">{totalOverDueCredits} customers have overdue payments.</p>
+                                    </div>
+                                </div>
+                            )}
+                            {tanksLevel.filter(t => t.status === 'low').length === 0 && totalOverDueCredits === 0 && (
+                                <div className="text-center py-4 text-slate-500 text-sm">No active alerts</div>
+                            )}
+                        </div>
+                    </Card>
+
+                    {/* Recent Transactions */}
+                    <Card className="p-6 border-0 shadow-sm bg-white">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-lg font-semibold text-slate-900">Recent Transactions</h3>
+                            <Link to="/transactions" className="text-sm text-orange-600 hover:text-orange-700 font-medium">
+                                View All
+                            </Link>
+                        </div>
+                        <div className="space-y-4">
+                            {recentActivity.length > 0 ? recentActivity.map((act, idx) => (
+                                <div key={idx} className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-lg transition-colors">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
+                                            {act.type === 'Sale' ? (
+                                                <CreditCard className="w-5 h-5 text-slate-600" />
+                                            ) : (
+                                                <Fuel className="w-5 h-5 text-slate-600" />
+                                            )}
                                         </div>
                                         <div>
-                                            <p className="text-sm font-medium text-slate-900">
-                                                {act.vehicle || act.supplier}
-                                            </p>
-                                            <p className="text-xs text-slate-500">
-                                                {act.fuel} • {act.liters}L • {act.time}
-                                            </p>
+                                            <h4 className="text-sm font-semibold text-slate-900">{act.vehicle || act.supplier || "Unknown"}</h4>
+                                            <p className="text-xs text-slate-500">{act.type} • {act.time}</p>
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-semibold text-slate-900">
-                                            ₹{act.amount.toLocaleString()}
-                                        </p>
-                                        <Badge
-                                            className={`mt-1 text-xs capitalize ${act.type === "Sale"
-                                                ? "bg-emerald-200 text-emerald-700 border-emerald-200"
-                                                : act.type === "Refill"
-                                                    ? "bg-blue-200 text-blue-700 border-blue-200"
-                                                    : "bg-slate-200 text-slate-700 border-slate-200"
-                                                }`}
-                                            variant="outline"
-                                        >
-                                            {act.type}
-                                        </Badge>
+                                        <p className="text-sm font-bold text-slate-900">₹{act.amount.toLocaleString()}</p>
+                                        <Badge variant="outline" className="text-xs mt-1">{act.paymentMethod || 'Cash'}</Badge>
                                     </div>
                                 </div>
-                            ))}
+                            )) : (
+                                <div className="text-center py-8 text-slate-500">No recent transactions</div>
+                            )}
                         </div>
-                    </div>
-                </Card>
+                        <div className="mt-6 text-center">
+                            <button className="text-sm text-orange-600 font-medium hover:underline">View All Transactions</button>
+                        </div>
+                    </Card>
+                </div>
             </div>
         </div>
     );

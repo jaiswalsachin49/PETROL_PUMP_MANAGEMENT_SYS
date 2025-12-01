@@ -67,14 +67,24 @@ const createPurchase = async (req, res) => {
             if (item.itemName && item.quantity) {
                 const fuelType = item.itemName.toLowerCase();
                 if (fuelType.includes('petrol') || fuelType.includes('diesel') || fuelType.includes('cng')) {
-                    let tankFuelType = 'petrol';
-                    if (fuelType.includes('diesel')) tankFuelType = 'diesel';
-                    if (fuelType.includes('cng')) tankFuelType = 'cng';
 
-                    await Tank.findOneAndUpdate(
-                        { fuelType: tankFuelType, status: 'active' },
-                        { $inc: { currentLevel: item.quantity } }
-                    );
+                    // CRITICAL FIX: Use specific tankId if provided, otherwise fallback (legacy support)
+                    if (item.tankId) {
+                        await Tank.findByIdAndUpdate(
+                            item.tankId,
+                            { $inc: { currentLevel: item.quantity } }
+                        );
+                    } else {
+                        // Fallback logic (Not recommended but kept for backward compatibility)
+                        let tankFuelType = 'petrol';
+                        if (fuelType.includes('diesel')) tankFuelType = 'diesel';
+                        if (fuelType.includes('cng')) tankFuelType = 'cng';
+
+                        await Tank.findOneAndUpdate(
+                            { fuelType: tankFuelType, status: 'active' },
+                            { $inc: { currentLevel: item.quantity } }
+                        );
+                    }
                 }
             }
         }

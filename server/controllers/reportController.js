@@ -18,13 +18,41 @@ const getDashboardSummary = async (req, res) => {
             .sort({ shiftNumber: -1 })
             .limit(2)
             .lean();
+
+        // If no shifts exist, return empty data instead of error
         if (!lastTwoShift || lastTwoShift.length === 0) {
-            return res.status(404).json({
-                success: false,
-                lastShift: null,
-                comparison: null,
-                message: 'No closed shifts found for report generation'
-            })
+            const tanks = await Tank.find().lean();
+            const tankLevels = tanks.map(tank => ({
+                tankId: tank._id,
+                fuelType: tank.fuelType,
+                capacity: tank.capacity,
+                currentLevel: tank.currentLevel
+            }));
+
+            const lowFuelTanks = await Tank.countDocuments({
+                $expr: { $lte: ['$currentLevel', '$minimumLevel'] },
+                status: 'Active'
+            });
+
+            return res.status(200).json({
+                success: true,
+                data: {
+                    lastShift: null,
+                    totalSalesAmount: 0,
+                    totalQuantitySold: 0,
+                    totalTransactions: 0,
+                    revenueChange: 0,
+                    quantityChange: 0,
+                    transactionChange: 0,
+                    activeStaff: 0,
+                    totalStaff: await Employee.countDocuments({ isActive: true }),
+                    staffUtilization: 0,
+                    tankLevels: tankLevels,
+                    lowFuelTanks: lowFuelTanks,
+                    alerts: lowFuelTanks > 0 ? [`${lowFuelTanks} tank(s) running low on fuel`] : []
+                },
+                message: 'No shifts data available yet'
+            });
         }
         const lastShift = lastTwoShift[0];
         const previousShift = lastTwoShift[1] || null;
@@ -99,45 +127,45 @@ const getDashboardSummary = async (req, res) => {
         });
 
         const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                const tomorrow = new Date(today);
-                tomorrow.setDate(tomorrow.getDate() + 1);
-        
-                const pumps = await Pump.find().populate('tankId', 'tankNumber fuelType').lean();
-        
-                const pumpSales = await Sale.aggregate([
-                    { $match: { date: { $gte: today, $lt: tomorrow } } },
-                    {
-                        $group: {
-                            _id: '$pumpId',
-                            todaySales: { $sum: '$totalAmount' },
-                            todaySalesQty: { $sum: '$quantity' }
-                        }
-                    }
-                ]);
-        
-                const salesMap = {};
-                pumpSales.forEach(s => {
-                    salesMap[s._id.toString()] = {
-                        amount: s.todaySales,
-                        quantity: s.todaySalesQty
-                    };
-                });
-        
-                const response = pumps.map(pump => {
-                    const sales = salesMap[pump._id.toString()] || { amount: 0, quantity: 0 };
-                    return {
-                        id: pump._id,
-                        name: pump.pumpNumber,
-                        type: pump.tankId?.fuelType || 'Unknown',
-                        tank: `Tank ${pump.tankId?.tankNumber || 'N/A'}`,
-                        status: pump.status === 'active' ? 'Active' : 'Maintenance',
-                        todaySalesAmount: sales.amount,
-                        todaySalesQuantity: sales.quantity,
-                        color: pump.status === 'active' ? 'emerald' : 'orange'
-                    };
-                });
-        
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const pumps = await Pump.find().populate('tankId', 'tankNumber fuelType').lean();
+
+        const pumpSales = await Sale.aggregate([
+            { $match: { date: { $gte: today, $lt: tomorrow } } },
+            {
+                $group: {
+                    _id: '$pumpId',
+                    todaySales: { $sum: '$totalAmount' },
+                    todaySalesQty: { $sum: '$quantity' }
+                }
+            }
+        ]);
+
+        const salesMap = {};
+        pumpSales.forEach(s => {
+            salesMap[s._id.toString()] = {
+                amount: s.todaySales,
+                quantity: s.todaySalesQty
+            };
+        });
+
+        const response = pumps.map(pump => {
+            const sales = salesMap[pump._id.toString()] || { amount: 0, quantity: 0 };
+            return {
+                id: pump._id,
+                name: pump.pumpNumber,
+                type: pump.tankId?.fuelType || 'Unknown',
+                tank: `Tank ${pump.tankId?.tankNumber || 'N/A'}`,
+                status: pump.status === 'active' ? 'Active' : 'Maintenance',
+                todaySalesAmount: sales.amount,
+                todaySalesQuantity: sales.quantity,
+                color: pump.status === 'active' ? 'emerald' : 'orange'
+            };
+        });
+
 
         res.status(200).json({
             success: true,
@@ -247,11 +275,13 @@ const getFuelDistribution = async (req, res) => {
         }
 
         if (!shiftId) {
-            return res.status(404).json({
-                success: false,
-                message: 'No shiftId provided and no closed shift found.',
+            return res.status(200).json({
+                success: true,
+                data: [],
+                message: 'No shifts data available yet',
             });
         }
+
 
         const matchCondition = { shiftId: new mongoose.Types.ObjectId(shiftId) }
 

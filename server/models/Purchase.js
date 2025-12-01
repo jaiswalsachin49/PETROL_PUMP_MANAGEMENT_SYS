@@ -20,7 +20,14 @@ const purchaseSchema = new mongoose.Schema({
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Inventory',
         },
-        itemName: String,
+        tankId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Tank',
+        },
+        itemName: {
+            type: String,
+            required: true,
+        },
         quantity: {
             type: Number,
             required: true,

@@ -15,7 +15,12 @@ connectDB();
 
 const app = express();
 
-app.use(cors());
+app.use(cors(
+    {
+        origin: 'http://localhost:5173',
+        credentials: true
+    }
+));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
@@ -29,6 +34,7 @@ app.use('/api/employees', require('./routes/employees'));
 app.use('/api/sales', require('./routes/sales'));
 app.use('/api/shifts', require('./routes/shifts'));
 app.use('/api/inventory', require('./routes/inventory'));
+app.use('/api/inventory-sales', require('./routes/inventorySales'));
 app.use('/api/purchases', require('./routes/purchases'));
 app.use('/api/transactions', require('./routes/transactions'));
 app.use('/api/suppliers', require('./routes/supplier'));
@@ -41,7 +47,7 @@ app.use('/api/reconciliation', reconciliationRoutes);
 const PORT = process.env.PORT || 8080;
 
 app.get('/', (req, res) => {
-    res.json({ message: 'Petrol Pump Management API',version: '1.0.0' });
+    res.json({ message: 'Petrol Pump Management API', version: '1.0.0' });
 });
 
 app.use(errorHandler);

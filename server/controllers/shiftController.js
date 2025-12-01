@@ -1,4 +1,7 @@
 const Shift = require('../models/Shift')
+const Tank = require('../models/Tank')
+const Sale = require('../models/Sale')
+
 
 // @desc    Get all shifts
 // route    GET /api/shifts
@@ -49,6 +52,32 @@ const getShift = async (req, res) => {
 // access   Private
 const createShift = async (req, res) => {
     try {
+        // 1. Check if there is already an active shift
+        const activeShift = await Shift.findOne({ status: 'active' });
+        if (activeShift) {
+            return res.status(400).json({
+                success: false,
+                message: 'There is already an active shift. Please close it first.'
+            });
+        }
+
+        // 2. Check if 2 shifts already exist for today
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const shiftsToday = await Shift.countDocuments({
+            date: { $gte: today, $lt: tomorrow }
+        });
+
+        if (shiftsToday >= 2) {
+            return res.status(400).json({
+                success: false,
+                message: 'Maximum 2 shifts allowed per day.'
+            });
+        }
+
         const shift = new Shift(req.body);
         await shift.save();
         res.status(201).json({
@@ -238,6 +267,21 @@ const closeShift = async (req, res) => {
 
         if (req.body.tankReadings) {
             shift.tankReadings = req.body.tankReadings;
+
+            // CRITICAL: Update Tank history for Reconciliation Report
+            for (const reading of req.body.tankReadings) {
+                await Tank.findByIdAndUpdate(reading.tankId, {
+                    $push: {
+                        dipReadings: {
+                            date: new Date(),
+                            reading: reading.closingReading,
+                            shiftId: shift._id
+                        }
+                    },
+                    // Update current level to match closing reading (Single Source of Truth)
+                    currentLevel: reading.closingReading
+                });
+            }
         }
 
         // 10. Add notes and supervisor

@@ -105,6 +105,16 @@ const getSalesByDateRange = async (req, res) => {
 const createSale = async (req, res) => {
     try {
         req.body.totalAmount = req.body.quantity * req.body.pricePerLiter;
+
+        // Verify Shift is Active
+        const shift = await require('../models/Shift').findById(req.body.shiftId);
+        if (!shift || shift.status !== 'active') {
+            return res.status(400).json({
+                success: false,
+                message: 'Sales can only be added to an ACTIVE shift.'
+            });
+        }
+
         const sale = await Sale.create(req.body);
 
         const pump = await Pump.findById(sale.pumpId);

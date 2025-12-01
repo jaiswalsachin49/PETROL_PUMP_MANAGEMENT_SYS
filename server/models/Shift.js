@@ -92,8 +92,16 @@ shiftSchema.index({ shiftNumber: 1, date: 1 });
 
 shiftSchema.pre('save', async function (next) {
     if (!this.shiftNumber) {
-        const lastShift = await mongoose.model('Shift').findOne().sort({ shiftNumber: -1 });
-        this.shiftNumber = lastShift ? lastShift.shiftNumber + 1 : 1;
+        const startOfDay = new Date(this.date);
+        startOfDay.setHours(0, 0, 0, 0);
+        const endOfDay = new Date(this.date);
+        endOfDay.setHours(23, 59, 59, 999);
+
+        const shiftCount = await mongoose.model('Shift').countDocuments({
+            date: { $gte: startOfDay, $lte: endOfDay }
+        });
+
+        this.shiftNumber = shiftCount + 1;
     }
     next();
 });
