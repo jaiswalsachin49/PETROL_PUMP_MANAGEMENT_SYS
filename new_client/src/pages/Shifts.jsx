@@ -149,10 +149,10 @@ export default function Shifts() {
         const pumpReadings = pumps.flatMap(pump =>
             pump.nozzles?.map(nozzle => ({
                 pumpId: pump._id,
-                pumpName: pump.name,
+                pumpName: pump.pumpNumber,
                 nozzleId: nozzle._id,
-                nozzleName: nozzle.name,
-                fuelType: nozzle.fuelType,
+                nozzleName: nozzle.nozzleId,
+                fuelType: nozzle.fuelType || nozzle.fueltype,
                 openingReading: nozzle.currentReading || 0,
                 closingReading: nozzle.currentReading || 0
             })) || []
@@ -227,14 +227,14 @@ export default function Shifts() {
             <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
                 <div className="px-8 py-6">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4"> 
-                            <div> 
-                                <h1 className="text-slate-900 flex items-center gap-2"> 
+                        <div className="flex items-center gap-4">
+                            <div>
+                                <h1 className="text-slate-900 flex items-center gap-2">
                                     Shift Management
-                                    <div className="size-2 bg-emerald-500 rounded-full animate-pulse"></div> 
-                                </h1> 
-                                <p className="text-sm text-slate-600">Real-time fuel station monitoring</p> 
-                            </div> 
+                                    <div className="size-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                                </h1>
+                                <p className="text-sm text-slate-600">Monitor and manage fuel pump shifts</p>
+                            </div>
                         </div>
                         <button
                             onClick={() => setShowCreateModal(true)}
@@ -490,7 +490,7 @@ export default function Shifts() {
                                                     }}
                                                     className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
                                                 />
-                                                <span className="text-sm text-slate-700">{pump.name}</span>
+                                                <span className="text-sm text-slate-700">{pump.pumpNumber}</span>
                                             </label>
                                         ))
                                     )}
@@ -506,7 +506,7 @@ export default function Shifts() {
                                     className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                                 >
                                     <option value="">Select Supervisor</option>
-                                    {employees.filter(e => e.role === 'manager' || e.role === 'supervisor').map(emp => (
+                                    {employees.filter(e => e.position === 'manager' || e.position === 'supervisor').map(emp => (
                                         <option key={emp._id} value={emp._id}>{emp.name}</option>
                                     ))}
                                 </select>

@@ -7,12 +7,16 @@ const Supplier = require('../models/Supplier')
 // @access  Private
 const getTransactions = async (req, res) => {
     try {
-        const transactions = await Transaction.find();
-        res.status(200).json({
+        const filter = req.user.organizationId ? { organizationId: req.user.organizationId } : {};
+        const transactions = await Transaction.find(filter)
+            .populate('customerId', 'name')
+            .populate('supplierId', 'name')
+            .populate('createdBy', 'username');
+        res.json({
             success: true,
             count: transactions.length,
             data: transactions
-        })
+        });
     } catch (error) {
         res.status(500).json({
             success: false,
@@ -50,8 +54,10 @@ const getTransaction = async (req, res) => {
 // @access  Private
 const createTransaction = async (req, res) => {
     try {
-        const transaction = new Transaction(req.body);
-        await transaction.save();
+        const transaction = await Transaction.create({
+            ...req.body,
+            organizationId: req.user.organizationId
+        });
 
         if (transaction.type === 'payment_received' && transaction.customerId) {
             await Customer.findByIdAndUpdate(

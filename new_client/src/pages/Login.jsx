@@ -10,7 +10,14 @@ export default function AuthPage() {
     email: '',
     password: '',
     phone: '',
-    role: 'employee',
+    role: 'admin', // Always admin for signup
+    name: '',
+    // Organization details
+    organizationName: '',
+    gstNumber: '',
+    licenseNumber: '',
+    contactNumber: '',
+    address: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -42,12 +49,12 @@ export default function AuthPage() {
 
   return (
     <div
-      className="min-h-screen bg-cover bg-center flex items-center justify-center relative"
+      className="min-h-screen bg-cover bg-center flex items-center justify-center relative p-4"
       style={{ backgroundImage: 'url("/petrolpump.jpg")' }}
     >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
 
-      <div className="relative z-10 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl shadow-2xl w-full max-w-md p-8 text-white">
+      <div className={`relative z-10 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-3xl shadow-2xl w-full p-8 text-white ${tab === 'signup' ? 'max-w-lg max-h-[90vh] overflow-y-auto' : 'max-w-md'}`}>
         <div className="flex flex-col items-center mb-6">
           <img src="/logo.png" alt="FuelFlow" className="w-16 h-16 mb-3" />
           <h1 className="text-2xl font-semibold text-center">
@@ -57,23 +64,20 @@ export default function AuthPage() {
         </div>
         <div className="relative flex mb-8 bg-white/10 rounded-full border border-white/20 overflow-hidden">
           <div
-            className={`absolute top-0 bottom-0 w-1/2 bg-orange-500 rounded-full shadow-[0_0_15px_rgba(255,165,0,0.5)] transition-all duration-500 ${
-              tab === 'signup' ? 'translate-x-full' : 'translate-x-0'
-            }`}
+            className={`absolute top-0 bottom-0 w-1/2 bg-orange-500 rounded-full shadow-[0_0_15px_rgba(255,165,0,0.5)] transition-all duration-500 ${tab === 'signup' ? 'translate-x-full' : 'translate-x-0'
+              }`}
           ></div>
           <button
             onClick={() => setTab('login')}
-            className={`relative flex-1 py-2.5 font-medium z-10 transition-all duration-500 ${
-              tab === 'login' ? 'text-white scale-105' : 'text-gray-300 hover:text-white'
-            }`}
+            className={`relative flex-1 py-2.5 font-medium z-10 transition-all duration-500 ${tab === 'login' ? 'text-white scale-105' : 'text-gray-300 hover:text-white'
+              }`}
           >
             Login
           </button>
           <button
             onClick={() => setTab('signup')}
-            className={`relative flex-1 py-2.5 font-medium z-10 transition-all duration-500 ${
-              tab === 'signup' ? 'text-white scale-105' : 'text-gray-300 hover:text-white'
-            }`}
+            className={`relative flex-1 py-2.5 font-medium z-10 transition-all duration-500 ${tab === 'signup' ? 'text-white scale-105' : 'text-gray-300 hover:text-white'
+              }`}
           >
             Signup
           </button>
@@ -87,6 +91,40 @@ export default function AuthPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           {tab === 'signup' && (
             <>
+              {/* Organization Name */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Petrol Pump Name</label>
+                <div className="relative">
+                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 w-5 h-5" />
+                  <input
+                    type="text"
+                    name="organizationName"
+                    placeholder="ABC Petrol Pump"
+                    value={credentials.organizationName}
+                    onChange={handleChange}
+                    required
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/10 border border-white/30 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none placeholder-gray-300 text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Admin Name */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Admin Name</label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 w-5 h-5" />
+                  <input
+                    type="text"
+                    name="name"
+                    placeholder="John Doe"
+                    value={credentials.name}
+                    onChange={handleChange}
+                    required
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/10 border border-white/30 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none placeholder-gray-300 text-white"
+                  />
+                </div>
+              </div>
+
               {/* Username */}
               <div>
                 <label className="block text-sm font-medium mb-2">Username</label>
@@ -95,7 +133,7 @@ export default function AuthPage() {
                   <input
                     type="text"
                     name="username"
-                    placeholder="JohnDoe123"
+                    placeholder="johndoe123"
                     value={credentials.username}
                     onChange={handleChange}
                     required
@@ -103,6 +141,7 @@ export default function AuthPage() {
                   />
                 </div>
               </div>
+
               <div>
                 <label className="block text-sm font-medium mb-2">Phone</label>
                 <div className="relative">
@@ -116,29 +155,6 @@ export default function AuthPage() {
                     required
                     className="w-full pl-10 pr-4 py-2.5 bg-white/10 border border-white/30 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none placeholder-gray-300 text-white"
                   />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2">Role</label>
-                <div className="relative">
-                  <Shield className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 w-5 h-5" />
-                  <select
-                    name="role"
-                    value={credentials.role}
-                    onChange={handleChange}
-                    className="w-full appearance-none pl-10 pr-4 py-2.5 bg-white/10 border border-white/30 rounded-lg focus:ring-2 focus:ring-orange-400 outline-none text-white"
-                  >
-                    <option value="employee" className="bg-slate-800 text-white">
-                      Employee
-                    </option>
-                    <option value="admin" className="bg-slate-800 text-white">
-                      Admin
-                    </option>
-                    <option value="manager" className="bg-slate-800 text-white">
-                      Manager
-                    </option>
-                  </select>
                 </div>
               </div>
             </>
@@ -195,8 +211,8 @@ export default function AuthPage() {
                 ? 'Signing In...'
                 : 'Creating Account...'
               : tab === 'login'
-              ? 'Login'
-              : 'Signup'}
+                ? 'Login'
+                : 'Signup'}
           </button>
         </form>
 

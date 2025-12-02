@@ -5,7 +5,8 @@ const Employee = require('../models/Employee');
 // @access  Private
 const getEmployees = async (req, res) => {
     try {
-        const employees = await Employee.find();
+        const filter = req.user.organizationId ? { organizationId: req.user.organizationId } : {};
+        const employees = await Employee.find(filter);
         res.json({
             success: true,
             count: employees.length,
@@ -48,13 +49,16 @@ const getEmployee = async (req, res) => {
 // @access  Private
 const createEmployee = async (req, res) => {
     try {
-        const employee = await Employee.create(req.body);
+        const employee = await Employee.create({
+            ...req.body,
+            organizationId: req.user.organizationId
+        });
         res.status(201).json({
             success: true,
             data: employee
         })
     } catch (error) {
-        res.status(500).json({
+        res.status(400).json({
             success: false,
             message: error.message,
         })

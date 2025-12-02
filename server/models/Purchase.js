@@ -5,6 +5,10 @@ const purchaseSchema = new mongoose.Schema({
         type: String,
         unique: true,
     },
+    supplier: {
+        type: String,
+        required: false,
+    },
     date: {
         type: Date,
         default: Date.now,
@@ -55,6 +59,13 @@ const purchaseSchema = new mongoose.Schema({
     },
     invoiceNumber: {
         type: String,
+        required: true,
+        unique: true,
+        trim: true
+    },
+    organizationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Organization'
     },
     deliveryDate: {
         type: Date,

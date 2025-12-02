@@ -6,7 +6,8 @@ const Purchase = require('../models/Purchase')
 // @access  Private
 const getTanks = async (req, res) => {
     try {
-        const tanks = await Tank.find().populate('lastDipReading.recordedBy', 'username')
+        const filter = req.user.organizationId ? { organizationId: req.user.organizationId } : {};
+        const tanks = await Tank.find(filter).populate('lastDipReading.recordedBy', 'username')
         res.json({
             success: true,
             count: tanks.length,
@@ -49,7 +50,10 @@ const getTank = async (req, res) => {
 // @access  Private
 const createTank = async (req, res) => {
     try {
-        const tank = await Tank.create(req.body);
+        const tank = await Tank.create({
+            ...req.body,
+            organizationId: req.user.organizationId
+        });
         res.status(201).json({
             success: true,
             data: tank,
@@ -132,7 +136,7 @@ const updateDipReading = async (req, res) => {
                 message: 'Tank not found'
             })
         }
-        
+
         tank.currentLevel = reading;
 
         tank.lastDipReading = {

@@ -7,7 +7,8 @@ const Tank = require('../models/Tank')
 // @access  Private
 const getPurchases = async (req, res) => {
     try {
-        const purchases = await Purchase.find();
+        const filter = req.user.organizationId ? { organizationId: req.user.organizationId } : {};
+        const purchases = await Purchase.find(filter).populate('supplierId', 'name companyName');
         res.status(200).json({
             success: true,
             count: purchases.length,
@@ -50,8 +51,11 @@ const getPurchase = async (req, res) => {
 // @access  Private
 const createPurchase = async (req, res) => {
     try {
-        const purchase = new Purchase(req.body);
-        await purchase.save();
+        req.body.totalAmount = req.body.items ? req.body.items.reduce((sum, item) => sum + Number(item.unitPrice * item.quantity), 0) : 0;
+        const purchase = await Purchase.create({
+            ...req.body,
+            organizationId: req.user.organizationId
+        });
 
         for (const item of purchase.items) {
             if (item.itemId) {

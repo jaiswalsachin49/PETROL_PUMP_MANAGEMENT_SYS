@@ -25,6 +25,10 @@ const tankSchema = new mongoose.Schema({
         type: Number,
         required: [true, 'Minimum level is required'],
     },
+    organizationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Organization'
+    },
     status: {
         type: String,
         enum: ['active', 'Inactive', 'under-maintenance'],
@@ -40,7 +44,7 @@ const tankSchema = new mongoose.Schema({
         date: Date,
         recordedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
     },
-    },{
+}, {
     timestamps: true
 })
 

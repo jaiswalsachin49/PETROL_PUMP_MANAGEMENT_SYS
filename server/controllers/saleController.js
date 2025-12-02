@@ -8,7 +8,8 @@ const Customer = require('../models/Customer')
 // @access  Private
 const getSales = async (req, res) => {
     try {
-        const sales = await Sale.find()
+        const filter = req.user.organizationId ? { organizationId: req.user.organizationId } : {};
+        const sales = await Sale.find(filter)
             .populate('customerId', 'name')
             .populate('pumpId', 'pumpNumber')
             .populate('employeeId', 'name')
@@ -115,7 +116,10 @@ const createSale = async (req, res) => {
             });
         }
 
-        const sale = await Sale.create(req.body);
+        const sale = await Sale.create({
+            ...req.body,
+            organizationId: req.user.organizationId
+        });
 
         const pump = await Pump.findById(sale.pumpId);
         if (pump && pump.tankId) {

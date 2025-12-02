@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const Organization = require('../models/Organization');
 const jwt = require('jsonwebtoken');
 const dotenv = require('dotenv');
 
@@ -12,12 +13,26 @@ const generateToken = (id) => {
     })
 }
 
-// @desc    Register new user
+// @desc    Register new user with organization
 // @route   POST /api/auth/register
 // @access  Public
 const register = async (req, res) => {
     try {
-        const { username, email, password, role, phone } = req.body;
+        const {
+            username,
+            email,
+            password,
+            role,
+            name,
+            phone,
+            // Organization details
+            organizationName,
+            gstNumber,
+            licenseNumber,
+            contactNumber,
+            address
+        } = req.body;
+
         const userExists = await User.findOne({ email });
         if (userExists) {
             return res.status(400).json({
@@ -25,13 +40,39 @@ const register = async (req, res) => {
                 message: 'User already exists with this email or username',
             });
         }
+
+        // Create organization first (only for admin signup)
+        let organizationId;
+        if (role === 'admin' || !role) {
+            const organization = await Organization.create({
+                name: organizationName || 'Petrol Pump',
+                gstNumber,
+                licenseNumber,
+                contactNumber: contactNumber || phone,
+                address: address || 'Not Provided'
+            });
+            organizationId = organization._id;
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'Only admin can register new organizations'
+            });
+        }
+
+        // Create user
         const user = await User.create({
             username,
             email,
             password,
-            role: role || 'employee',
+            role: 'admin', // First user is always admin
+            name,
             phone,
-        })
+            organizationId
+        });
+
+        // Update organization with createdBy
+        await Organization.findByIdAndUpdate(organizationId, { createdBy: user._id });
+
         if (user) {
             res.status(201).json({
                 success: true,
@@ -40,8 +81,10 @@ const register = async (req, res) => {
                     username: user.username,
                     email: user.email,
                     role: user.role,
+                    organizationId: user.organizationId,
                     token: generateToken(user._id),
-                }
+                },
+                message: 'Organization and admin account created successfully'
             });
         }
     } catch (error) {
@@ -58,8 +101,17 @@ const register = async (req, res) => {
 const login = async (req, res) => {
     try {
         const { email, password } = req.body;
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email }).populate('organizationId');
+
         if (user && (await user.matchPassword(password))) {
+            // Check if user is active
+            if (!user.isActive) {
+                return res.status(401).json({
+                    success: false,
+                    message: 'Your account has been deactivated. Please contact your administrator.',
+                });
+            }
+
             const token = generateToken(user._id);
             res.json({
                 success: true,
@@ -67,7 +119,10 @@ const login = async (req, res) => {
                     _id: user._id,
                     username: user.username,
                     email: user.email,
+                    name: user.name,
                     role: user.role,
+                    organizationId: user.organizationId?._id,
+                    organization: user.organizationId,
                     token: token
                 }
             });

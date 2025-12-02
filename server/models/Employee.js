@@ -25,7 +25,7 @@ const employeeSchema = new mongoose.Schema({
     },
     position: {
         type: String,
-        enum: ['pump_attendant', 'manager', 'accountant'],
+        enum: ['pump_attendant', 'manager', 'accountant', 'supervisor'],
         required: [true, 'Position is required']
     },
     salary: {
@@ -63,6 +63,10 @@ const employeeSchema = new mongoose.Schema({
         status: { type: String, enum: ['Present', 'Absent', 'Leave', 'Holiday'] },
         hoursWorked: Number
     }],
+    organizationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Organization'
+    },
     isActive: {
         type: Boolean,
         default: true

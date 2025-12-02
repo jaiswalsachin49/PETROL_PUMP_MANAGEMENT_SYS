@@ -393,23 +393,31 @@ export default function Dashboard() {
                     {/* Quick Actions */}
                     <Card className="p-6 border-0 shadow-sm bg-white">
                         <h3 className="text-lg font-semibold text-slate-900 mb-6">Quick Actions</h3>
-                        <div className="space-y-3">
-                            <button className="w-full flex items-center gap-3 p-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl transition-colors font-medium shadow-sm">
-                                <Play className="w-5 h-5" />
-                                Start New Shift
-                            </button>
-                            <button className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 hover:bg-orange-50 text-slate-700 rounded-xl transition-colors font-medium">
-                                <ShoppingCart className="w-5 h-5 text-slate-500" />
-                                Record Sale
-                            </button>
-                            <button className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 hover:bg-orange-50 text-slate-700 rounded-xl transition-colors font-medium">
-                                <Plus className="w-5 h-5 text-slate-500" />
-                                Add Expense
-                            </button>
-                            <button className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 hover:bg-orange-50 text-slate-700 rounded-xl transition-colors font-medium">
-                                <RefreshCw className="w-5 h-5 text-slate-500" />
-                                Update Tank Reading
-                            </button>
+                        <div className="flex flex-col gap-3">
+                            <Link to="/shifts">
+                                <button className="w-full flex items-center gap-3 p-3 bg-orange-600 hover:bg-orange-700 text-white rounded-xl transition-colors font-medium shadow-sm">
+                                    <Play className="w-5 h-5" />
+                                    Start New Shift
+                                </button>
+                            </Link>
+                            <Link to="/sales">
+                                <button className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 hover:bg-orange-50 text-slate-700 rounded-xl transition-colors font-medium">
+                                    <ShoppingCart className="w-5 h-5 text-slate-500" />
+                                    Record Sale
+                                </button>
+                            </Link>
+                            <Link to="/expenses">
+                                <button className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 hover:bg-orange-50 text-slate-700 rounded-xl transition-colors font-medium">
+                                    <Plus className="w-5 h-5 text-slate-500" />
+                                    Add Expense
+                                </button>
+                            </Link>
+                            <Link to="/tanks">
+                                <button className="w-full flex items-center gap-3 p-3 bg-white border border-slate-200 hover:bg-orange-50 text-slate-700 rounded-xl transition-colors font-medium">
+                                    <RefreshCw className="w-5 h-5 text-slate-500" />
+                                    Update Tank Reading
+                                </button>
+                            </Link>
                         </div>
                     </Card>
                 </div>
@@ -482,9 +490,9 @@ export default function Dashboard() {
                                 <div className="text-center py-8 text-slate-500">No recent transactions</div>
                             )}
                         </div>
-                        <div className="mt-6 text-center">
+                        {/* <div className="mt-6 text-center">
                             <button className="text-sm text-orange-600 font-medium hover:underline">View All Transactions</button>
-                        </div>
+                        </div> */}
                     </Card>
                 </div>
             </div>

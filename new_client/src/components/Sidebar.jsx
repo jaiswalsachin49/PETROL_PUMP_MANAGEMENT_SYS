@@ -19,7 +19,8 @@ import {
     PieChart,
     ClipboardCheck,
     ChevronDown,
-    ChevronRight
+    ChevronRight,
+    Settings as SettingsIcon
 } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -182,6 +183,18 @@ export default function Sidebar({ onLogout }) {
                             )}
                         </div>
                     ))}
+                    <NavLink
+                        to="/settings"
+                        className={({ isActive }) =>
+                            `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium mb-4 transition-all ${isActive
+                                ? "bg-gradient-to-r from-orange-600 to-orange-500 text-white shadow-md"
+                                : "text-slate-600 hover:bg-orange-50 hover:text-orange-600"
+                            }`
+                        }
+                    >
+                        <SettingsIcon className="w-5 h-5" />
+                        <span>Settings</span>
+                    </NavLink>
                 </div>
             </nav>
 

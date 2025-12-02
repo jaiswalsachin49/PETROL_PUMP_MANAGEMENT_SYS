@@ -43,6 +43,8 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/expenses', expenseRoutes);
 app.use('/api/credit', creditRoutes);
 app.use('/api/reconciliation', reconciliationRoutes);
+app.use('/api/organization', require('./routes/organization'));
+app.use('/api/users', require('./routes/users'));
 
 const PORT = process.env.PORT || 8080;
 

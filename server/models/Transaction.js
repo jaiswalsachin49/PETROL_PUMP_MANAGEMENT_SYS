@@ -32,6 +32,10 @@ const transactionSchema = new mongoose.Schema({
         type: String,
         trim: true,
     },
+    category: {
+        type: String,
+        trim: true,
+    },
     customerId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Customer',
@@ -44,6 +48,10 @@ const transactionSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
         required: true,
+    },
+    organizationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Organization'
     },
 }, {
     timestamps: true,

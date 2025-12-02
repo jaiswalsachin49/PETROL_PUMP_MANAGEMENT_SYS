@@ -3,15 +3,17 @@ const Customer = require('../models/Customer');
 // @desc    Get all customers
 // @route   GET /api/customers
 // @access  Private
-const getCustomers = async(req,res)=>{
-    try{
-        const customers =  await Customer.find();
+const getCustomers = async (req, res) => {
+    try {
+        //  Filter by organization if user has one
+        const filter = req.user.organizationId ? { organizationId: req.user.organizationId } : {};
+        const customers = await Customer.find(filter);
         res.json({
             success: true,
             count: customers.length,
             data: customers
         })
-    }catch(error){
+    } catch (error) {
         res.status(500).json({
             success: false,
             message: error.message,
@@ -22,11 +24,11 @@ const getCustomers = async(req,res)=>{
 // @desc    Get single customer
 // @route   GET /api/customers/:id
 // @access  Private
-const getCustomer = async(req,res)=>{
-    try{
-        const customer =  await Customer.findById(req.params.id);
-        if(!customer){
-            return  res.status(404).json({
+const getCustomer = async (req, res) => {
+    try {
+        const customer = await Customer.findById(req.params.id);
+        if (!customer) {
+            return res.status(404).json({
                 success: false,
                 message: 'Customer not found'
             })
@@ -35,7 +37,7 @@ const getCustomer = async(req,res)=>{
             success: true,
             data: customer
         })
-    }catch(error){
+    } catch (error) {
         res.status(500).json({
             success: false,
             message: error.message,
@@ -46,15 +48,19 @@ const getCustomer = async(req,res)=>{
 // @desc    Create new customer
 // @route   POST /api/customers
 // @access  Private
-const createCustomer = async(req,res)=>{
-    try{
-        const customer = await Customer.create(req.body);
+const createCustomer = async (req, res) => {
+    try {
+        const customer = await Customer.create({
+            ...req.body,
+            organizationId: req.user.organizationId  // Add organizationId from logged-in user
+        });
         res.status(201).json({
             success: true,
             data: customer
         })
-    }catch(error){
-        res.status(500).json({
+    } catch (error) {
+        console.error('Error creating customer:', error);
+        res.status(400).json({
             success: false,
             message: error.message,
         })
@@ -64,11 +70,11 @@ const createCustomer = async(req,res)=>{
 // @desc    Update customer info
 // @route   PUT /api/customers/:id
 // @access  Private
-const updateCustomer = async(req,res)=>{
-    try{
-        const customer = await Customer.findByIdAndUpdate(req.params.id,req.body,{ new:true,runValidators:true });
-        if(!customer){
-            return  res.status(404).json({
+const updateCustomer = async (req, res) => {
+    try {
+        const customer = await Customer.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+        if (!customer) {
+            return res.status(404).json({
                 success: false,
                 message: 'Customer not found'
             })
@@ -77,7 +83,7 @@ const updateCustomer = async(req,res)=>{
             success: true,
             data: customer
         })
-    }catch(error){
+    } catch (error) {
         res.status(500).json({
             success: false,
             message: error.message,
@@ -88,11 +94,11 @@ const updateCustomer = async(req,res)=>{
 // @desc    Delete customer
 // @route   DELETE /api/customers/:id
 // @access  Private
-const deleteCustomer = async(req,res)=>{
-    try{
+const deleteCustomer = async (req, res) => {
+    try {
         const customer = await Customer.findById(req.params.id);
-        if(!customer){
-            return  res.status(404).json({
+        if (!customer) {
+            return res.status(404).json({
                 success: false,
                 message: 'Customer not found'
             })
@@ -102,7 +108,7 @@ const deleteCustomer = async(req,res)=>{
             success: true,
             message: 'Customer removed successfully'
         })
-    }catch(error){
+    } catch (error) {
         res.status(500).json({
             success: false,
             message: error.message,
@@ -110,14 +116,14 @@ const deleteCustomer = async(req,res)=>{
     }
 }
 
-const insertMany = async(req,res)=>{
-    try{
+const insertMany = async (req, res) => {
+    try {
         const data = await Customer.insertMany(req.body)
         res.status(201).json({
             success: true,
-            data: {data}
+            data: { data }
         })
-    }catch(error){
+    } catch (error) {
         res.status(500).json({
             success: false,
             message: error.message

@@ -29,32 +29,36 @@ const nozzleSchema = new mongoose.Schema({
 }, { _id: true });
 
 const pumpSchema = new mongoose.Schema({
-    pumpNumber:{
+    pumpNumber: {
         type: String,
         required: [true, 'Pump number is required'],
         unique: true,
         trim: true,
         uppercase: true
     },
-    tankId:{
+    tankId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Tank',
         required: [true, 'Associated tank is required']
     },
-    nozzles:[nozzleSchema],
-    status:{
+    nozzles: [nozzleSchema],
+    status: {
         type: String,
         enum: ['active', 'under-maintainance'],
         default: 'active'
     },
-    lastCalibrationDate:{
+    organizationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Organization'
+    },
+    lastCalibrationDate: {
         type: Date,
     },
-    locationDescription:{
+    locationDescription: {
         type: String,
         trim: true
     }
-},{
+}, {
     timestamps: true
 })
 
@@ -62,4 +66,4 @@ pumpSchema.index({ pumpNumber: 1 });
 pumpSchema.index({ tankId: 1 });
 pumpSchema.index({ status: 1 });
 
-module.exports = mongoose.model('Pump',pumpSchema);
+module.exports = mongoose.model('Pump', pumpSchema);

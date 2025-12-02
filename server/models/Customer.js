@@ -1,63 +1,63 @@
 const mongoose = require('mongoose');
 
 const customerSchema = new mongoose.Schema({
-    customerId:{
+    customerId: {
         type: String,
         unique: true,
         trim: true,
         uppercase: true
     },
-    name:{
+    name: {
         type: String,
         required: [true, 'Customer name is required'],
         trim: true
     },
-    saleType:{
+    saleType: {
         type: String,
         enum: ['credit', 'cash', 'fleet'],
         default: 'credit'
     },
-    companyName:{
+    companyName: {
         type: String,
         trim: true
     },
-    email:{
+    email: {
         type: String,
         unique: true,
         trim: true,
         lowercase: true,
     },
-    phone:{
+    phone: {
         type: String,
         trim: true,
         required: [true, 'Phone number is required']
     },
-    address:{
+    address: {
         street: String,
         city: String,
         state: String,
         zipCode: String,
     },
-    creditLimit:{
+    creditLimit: {
         type: Number,
         min: [0, 'Credit limit must be a positive number'],
         default: 0
     },
-    outstandingBalance:{
+    outstandingBalance: {
         type: Number,
         min: [0, 'Outstanding balance must be a positive number'],
         default: 0
     },
     vehicles: [{
         vehicleNumber: {
-        type: String,
-        uppercase: true,
+            type: String,
+            uppercase: true,
         },
         vehicleType: String,
     }],
     paymentTerms: {
-    type: String,
-    default: 'immediate',
+        type: String,
+        default: 'immediate',
     },
     gstNumber: {
         type: String,
@@ -68,11 +68,16 @@ const customerSchema = new mongoose.Schema({
         default: 0,
         min: 0,
     },
+    organizationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Organization'
+        // Optional for backward compatibility
+    },
     isActive: {
         type: Boolean,
         default: true,
     },
-    }, {
+}, {
     timestamps: true,
 });
 

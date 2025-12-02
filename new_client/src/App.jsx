@@ -13,6 +13,16 @@ import Sales from './pages/Sales';
 import Shifts from './pages/Shifts';
 import Reports from './pages/AnalyticsReports';
 import Inventory from './pages/Inventory';
+import Attendance from './pages/Attendance';
+import Tank from './pages/Tanks';
+import Suppliers from './pages/Suppliers';
+import Purchases from './pages/Purchases';
+import Transactions from './pages/Transactions';
+import Expenses from './pages/Expenses';
+import Credit from './pages/Credit';
+import Analytics from './pages/Analytics';
+import Reconciliation from './pages/Reconciliation';
+import Settings from './pages/Settings';
 
 import Sidebar from './components/Sidebar';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -44,10 +54,21 @@ function App() {
                   <Route path="/pumps" element={<Pumps />} />
                   <Route path="/employees" element={<Employees />} />
                   <Route path="/customers" element={<Customers />} />
-                  <Route path="/sales" element={<Sales />} /> 
+                  <Route path="/sales" element={<Sales />} />
                   <Route path="/shifts" element={<Shifts />} />
                   <Route path="/reports" element={<Reports />} />
                   <Route path='/inventory' element={<Inventory />} />
+                  <Route path='/attendance' element={<Attendance />} />
+                  <Route path='/tanks' element={<Tank />} />
+                  <Route path='/suppliers' element={<Suppliers />} />
+                  <Route path='/purchases' element={<Purchases />} />
+                  <Route path='/transactions' element={<Transactions />} />
+                  <Route path='/expenses' element={<Expenses />} />
+                  <Route path='/credit' element={<Credit />} />
+                  <Route path='/analytics' element={<Analytics />} />
+                  <Route path='/reconciliation' element={<Reconciliation />} />
+                  <Route path='/settings' element={<Settings />} />
+
                 </Routes>
               </MainLayout>
             </ProtectedRoute>

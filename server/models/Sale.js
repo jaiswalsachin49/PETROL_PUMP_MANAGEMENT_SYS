@@ -53,7 +53,7 @@ const saleSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Customer',
         required: function () {
-        return this.saleType === 'credit' || this.saleType === 'fleet';
+            return this.saleType === 'credit' || this.saleType === 'fleet';
         },
     },
     vehicleNumber: {
@@ -64,6 +64,10 @@ const saleSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Employee',
         required: [true, 'Employee reference is required'],
+    },
+    organizationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Organization'
     },
     paymentStatus: {
         type: String,

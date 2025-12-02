@@ -15,7 +15,8 @@ import {
     Eye,
     X,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Play
 } from "lucide-react";
 
 export default function Sales() {
@@ -31,7 +32,7 @@ export default function Sales() {
     const [saleForm, setSaleForm] = useState({
         fuelType: "petrol",
         quantity: "",
-        pricePerLiter: 95,
+        pricePerLiter: "",
         saleType: "cash",
         pumpId: "",
         nozzleId: "",
@@ -153,7 +154,7 @@ export default function Sales() {
         setSaleForm({
             fuelType: "petrol",
             quantity: "",
-            pricePerLiter: 95,
+            pricePerLiter: "",
             saleType: "cash",
             pumpId: "",
             nozzleId: "",
@@ -213,35 +214,42 @@ export default function Sales() {
             <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
                 <div className="px-8 py-6">
                     <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-bold text-slate-900">Sales Management</h1>
-                            <p className="text-sm text-slate-500 mt-1">Record and track fuel sales</p>
+                        <div className="flex items-center gap-4">
+                            <div>
+                                <h1 className="text-slate-900 flex items-center gap-2">
+                                    Sales Management
+                                    <div className="size-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                                </h1>
+                                <p className="text-sm text-slate-600">
+                                    Record and manage fuel sales
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* Tabs */}
-                <div className="px-8">
-                    <div className="flex gap-4 border-b border-slate-200">
-                        <button
-                            onClick={() => setActiveTab("record")}
-                            className={`px-4 py-3 font-medium text-sm transition-colors relative ${activeTab === "record"
-                                ? "text-orange-600 border-b-2 border-orange-600"
-                                : "text-slate-600 hover:text-slate-900"
-                                }`}
-                        >
-                            Record Sale
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("history")}
-                            className={`px-4 py-3 font-medium text-sm transition-colors relative ${activeTab === "history"
-                                ? "text-orange-600 border-b-2 border-orange-600"
-                                : "text-slate-600 hover:text-slate-900"
-                                }`}
-                        >
-                            Sales History
-                        </button>
-                    </div>
+            {/* Tabs */}
+            <div className="px-8">
+                <div className="flex gap-4 border-b border-slate-200">
+                    <button
+                        onClick={() => setActiveTab("record")}
+                        className={`px-4 py-3 font-medium text-sm transition-colors relative ${activeTab === "record"
+                            ? "text-orange-600 border-b-2 border-orange-600"
+                            : "text-slate-600 hover:text-slate-900"
+                            }`}
+                    >
+                        Record Sale
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("history")}
+                        className={`px-4 py-3 font-medium text-sm transition-colors relative ${activeTab === "history"
+                            ? "text-orange-600 border-b-2 border-orange-600"
+                            : "text-slate-600 hover:text-slate-900"
+                            }`}
+                    >
+                        Sales History
+                    </button>
                 </div>
             </div>
 
@@ -269,18 +277,12 @@ export default function Sales() {
                                     <select
                                         required
                                         value={saleForm.fuelType}
-                                        onChange={(e) => {
-                                            const fuel = e.target.value;
-                                            let price = 95;
-                                            if (fuel === 'diesel') price = 87;
-                                            if (fuel === 'cng') price = 75;
-                                            setSaleForm({ ...saleForm, fuelType: fuel, pricePerLiter: price });
-                                        }}
+                                        onChange={(e) => setSaleForm({ ...saleForm, fuelType: e.target.value })}
                                         className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
                                     >
-                                        <option value="petrol">Petrol (₹95/L)</option>
-                                        <option value="diesel">Diesel (₹87/L)</option>
-                                        <option value="cng">CNG (₹75/L)</option>
+                                        <option value="petrol">Petrol</option>
+                                        <option value="diesel">Diesel</option>
+                                        <option value="cng">CNG</option>
                                     </select>
                                 </div>
 
@@ -311,9 +313,10 @@ export default function Sales() {
                                         required
                                         step="0.01"
                                         min="0"
+                                        placeholder="Enter rate per liter"
                                         value={saleForm.pricePerLiter}
                                         onChange={(e) => setSaleForm({ ...saleForm, pricePerLiter: e.target.value })}
-                                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-slate-50"
+                                        className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                                     />
                                 </div>
 
@@ -383,7 +386,7 @@ export default function Sales() {
                                         <option value="">Select Pump</option>
                                         {pumps.map(pump => (
                                             <option key={pump._id} value={pump._id}>
-                                                {pump.name}
+                                                {pump.pumpNumber}
                                             </option>
                                         ))}
                                     </select>
@@ -404,7 +407,7 @@ export default function Sales() {
                                             <option value="">Select Nozzle</option>
                                             {nozzles.map(nozzle => (
                                                 <option key={nozzle._id} value={nozzle._id}>
-                                                    {nozzle.name} - {nozzle.fuelType}
+                                                    {nozzle.nozzleId} - {nozzle.fueltype || nozzle.fuelType}
                                                 </option>
                                             ))}
                                         </select>

@@ -7,7 +7,8 @@ const Employee = require('../models/Employee');
 // @access  Private
 const getPumps = async (req, res) => {
     try {
-        const pumps = await Pump.find().populate('tankId', 'tankNumber fuelType').populate('nozzles.assignedEmployee', 'name position')
+        const filter = req.user.organizationId ? { organizationId: req.user.organizationId } : {};
+        const pumps = await Pump.find(filter).populate('tankId', 'tankNumber fuelType').populate('nozzles.assignedEmployee', 'name position')
         res.json({
             success: true,
             count: pumps.length,
@@ -54,7 +55,10 @@ const createPump = async (req, res) => {
         if (!req.body.tankId || !req.body.pumpNumber) {
             return res.status(400).json({ success: false, message: 'tankId and pumpNumber are required' });
         }
-        const pump = await Pump.create(req.body)
+        const pump = await Pump.create({
+            ...req.body,
+            organizationId: req.user.organizationId
+        })
         res.status(201).json({
             success: true,
             data: pump

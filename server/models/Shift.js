@@ -80,6 +80,11 @@ const shiftSchema = new mongoose.Schema({
     },
     notes: {
         type: String,
+        trim: true
+    },
+    organizationId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Organization'
     },
 }, {
     timestamps: true,
