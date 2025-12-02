@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { tankService } from "../services/tankService";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { toast } from 'react-toastify';
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import {
@@ -62,24 +63,28 @@ export default function Tanks() {
                 minimumLevel: ""
             });
             fetchTanks();
-            alert("Tank created successfully!");
+            toast.success("Tank created successfully!");
         } catch (error) {
             console.error("Error creating tank:", error);
-            alert(error.response?.data?.message || "Error creating tank");
+            toast.error(error.response?.data?.message || "Error creating tank");
         }
     };
 
     const handleDipSubmit = async (e) => {
         e.preventDefault();
         try {
-            await tankService.updateDipReading(selectedTank._id, dipForm.reading);
-            setShowDipModal(false);
-            setDipForm({ reading: "", date: new Date().toISOString().split('T')[0] });
+            // Assuming dipForm is now readingForm and tankService.updateDipReading is tankService.addDipReading
+            await tankService.addDipReading(selectedTank._id, {
+                reading: parseFloat(dipForm.reading), // Use dipForm.reading as per original state
+                date: new Date()
+            });
+            setShowDipModal(false); // Keep original modal state variable
+            setDipForm({ reading: "", date: new Date().toISOString().split('T')[0] }); // Keep original state variable
             fetchTanks();
-            alert("Dip reading updated successfully!");
+            toast.success("Dip reading updated successfully!");
         } catch (error) {
             console.error("Error updating dip reading:", error);
-            alert(error.response?.data?.message || "Error updating reading");
+            toast.error(error.response?.data?.message || "Error updating reading");
         }
     };
 

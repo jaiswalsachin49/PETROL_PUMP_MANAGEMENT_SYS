@@ -3,6 +3,7 @@ import { attendanceService } from "../services/attendanceService";
 import { shiftService } from "../services/shiftService";
 import { employeeService } from "../services/employeeService";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { toast } from 'react-toastify';
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import {
@@ -94,11 +95,11 @@ export default function Attendance() {
     const handleMarkAttendance = async (e) => {
         e.preventDefault();
         if (!activeShift) {
-            alert("No active shift found!");
+            toast.error("No active shift found!");
             return;
         }
         if (!markForm.employeeId) {
-            alert("Please select an employee.");
+            toast.error("Please select an employee.");
             return;
         }
 
@@ -112,10 +113,10 @@ export default function Attendance() {
             // Refresh data
             fetchShiftAttendance(activeShift._id);
             fetchInitialData(); // Update stats
-            alert("Attendance marked successfully!");
+            toast.success("Attendance marked successfully!");
         } catch (error) {
             console.error("Error marking attendance:", error);
-            alert(error.response?.data?.message || "Error marking attendance");
+            toast.error(error.response?.data?.message || "Error marking attendance");
         }
     };
 

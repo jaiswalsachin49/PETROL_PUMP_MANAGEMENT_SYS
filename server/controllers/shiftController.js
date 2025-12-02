@@ -347,6 +347,95 @@ const closeShift = async (req, res) => {
     }
 };
 
+// @desc Get shift summary for closing (auto-calculate values)
+// @route GET /api/shifts/:id/summary
+// @access Private
+const getShiftSummary = async (req, res) => {
+    try {
+        const shiftId = req.params.id;
+
+        // 1. Find the shift
+        const shift = await Shift.findById(shiftId);
+        if (!shift) {
+            return res.status(404).json({
+                success: false,
+                message: 'Shift not found'
+            });
+        }
+
+        // 2. Aggregate sales data
+        const salesAggregation = await Sale.aggregate([
+            { $match: { shiftId: shift._id } },
+            {
+                $group: {
+                    _id: null,
+                    totalSales: { $sum: '$totalAmount' },
+                    totalQuantity: { $sum: '$quantity' },
+                    totalTransactions: { $sum: 1 },
+                    cashCollected: {
+                        $sum: {
+                            $cond: [
+                                { $eq: ['$saleType', 'cash'] },
+                                '$totalAmount',
+                                0
+                            ]
+                        }
+                    },
+                    cardPayments: {
+                        $sum: {
+                            $cond: [
+                                { $eq: ['$saleType', 'card'] },
+                                '$totalAmount',
+                                0
+                            ]
+                        }
+                    },
+                    upiPayments: {
+                        $sum: {
+                            $cond: [
+                                { $eq: ['$saleType', 'upi'] },
+                                '$totalAmount',
+                                0
+                            ]
+                        }
+                    }
+                }
+            }
+        ]);
+
+        const salesData = salesAggregation[0] || {
+            totalSales: 0,
+            totalQuantity: 0,
+            totalTransactions: 0,
+            cashCollected: 0,
+            cardPayments: 0,
+            upiPayments: 0
+        };
+
+        // 3. Calculate expected closing cash
+        const expectedClosingCash = shift.openingCash + salesData.cashCollected;
+
+        // 4. Return summary
+        res.json({
+            success: true,
+            data: {
+                shiftId: shift._id,
+                shiftNumber: shift.shiftNumber,
+                openingCash: shift.openingCash,
+                salesSummary: salesData,
+                expectedClosingCash: expectedClosingCash,
+                suggestedClosingCash: expectedClosingCash // Suggest this value
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
 
 module.exports = {
     getShifts,
@@ -354,7 +443,8 @@ module.exports = {
     createShift,
     updateShift,
     deleteShift,
-    closeShift
+    closeShift,
+    getShiftSummary
 }
 
 

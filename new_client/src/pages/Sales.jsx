@@ -4,7 +4,9 @@ import { pumpService } from "../services/pumpService";
 import { customerService } from "../services/customerService";
 import { employeeService } from "../services/employeeService";
 import { shiftService } from "../services/shiftService";
+import { organizationService } from "../services/organizationService";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { toast } from 'react-toastify';
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import {
@@ -19,6 +21,7 @@ import {
     Play
 } from "lucide-react";
 
+
 export default function Sales() {
     const [activeTab, setActiveTab] = useState("record"); // "record" or "history"
     const [sales, setSales] = useState([]);
@@ -27,6 +30,7 @@ export default function Sales() {
     const [customers, setCustomers] = useState([]);
     const [employees, setEmployees] = useState([]);
     const [activeShift, setActiveShift] = useState(null);
+    const [fuelPrices, setFuelPrices] = useState({ petrol: 0, diesel: 0, premium: 0 });
 
     // Form state
     const [saleForm, setSaleForm] = useState({
@@ -58,7 +62,19 @@ export default function Sales() {
         fetchCustomers();
         fetchEmployees();
         fetchActiveShift();
+        fetchActiveShift();
+        fetchFuelPrices();
     }, []);
+
+    // Auto-populate price when fuel type changes
+    useEffect(() => {
+        if (saleForm.fuelType && fuelPrices[saleForm.fuelType]) {
+            setSaleForm(prev => ({
+                ...prev,
+                pricePerLiter: fuelPrices[saleForm.fuelType]
+            }));
+        }
+    }, [saleForm.fuelType, fuelPrices]);
 
     const fetchSales = async () => {
         try {
@@ -99,6 +115,17 @@ export default function Sales() {
         }
     };
 
+    const fetchFuelPrices = async () => {
+        try {
+            const res = await organizationService.getOrganization();
+            if (res.data.data && res.data.data.fuelPricing) {
+                setFuelPrices(res.data.data.fuelPricing);
+            }
+        } catch (error) {
+            console.error("Error fetching fuel prices:", error);
+        }
+    };
+
     const fetchActiveShift = async () => {
         try {
             const res = await shiftService.getAll();
@@ -113,7 +140,7 @@ export default function Sales() {
         e.preventDefault();
 
         if (!activeShift) {
-            alert("No active shift found. Please start a shift first.");
+            toast.error("No active shift found. Please start a shift first.");
             return;
         }
 
@@ -123,7 +150,8 @@ export default function Sales() {
                 shiftId: activeShift._id,
                 quantity: parseFloat(saleForm.quantity),
                 pricePerLiter: parseFloat(saleForm.pricePerLiter),
-                totalAmount: parseFloat(saleForm.quantity) * parseFloat(saleForm.pricePerLiter)
+                totalAmount: parseFloat(saleForm.quantity) * parseFloat(saleForm.pricePerLiter),
+                customerId: saleForm.customerId || null
             };
 
             await saleService.create(saleData);
@@ -143,10 +171,10 @@ export default function Sales() {
             });
 
             fetchSales();
-            alert("Sale recorded successfully!");
+            toast.success("Sale recorded successfully!");
         } catch (error) {
             console.error("Error creating sale:", error);
-            alert(error.response?.data?.message || "Error recording sale");
+            toast.error(error.response?.data?.message || "Error recording sale");
         }
     };
 
@@ -401,7 +429,17 @@ export default function Sales() {
                                         <select
                                             required
                                             value={saleForm.nozzleId}
-                                            onChange={(e) => setSaleForm({ ...saleForm, nozzleId: e.target.value })}
+                                            onChange={(e) => {
+                                                const newNozzleId = e.target.value;
+                                                const selectedPump = pumps.find(p => p._id === saleForm.pumpId);
+                                                const selectedNozzle = selectedPump?.nozzles.find(n => n._id === newNozzleId);
+
+                                                setSaleForm(prev => ({
+                                                    ...prev,
+                                                    nozzleId: newNozzleId,
+                                                    employeeId: selectedNozzle?.assignedEmployee?._id || prev.employeeId
+                                                }));
+                                            }}
                                             className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
                                         >
                                             <option value="">Select Nozzle</option>

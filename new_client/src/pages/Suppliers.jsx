@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { supplierService } from "../services/supplierService";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { toast } from 'react-toastify';
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import {
@@ -65,10 +66,10 @@ export default function Suppliers() {
             setShowCreateModal(false);
             resetForm();
             fetchSuppliers();
-            alert("Supplier created successfully!");
+            toast.success("Supplier created successfully!");
         } catch (error) {
             console.error("Error creating supplier:", error);
-            alert(error.response?.data?.message || "Error creating supplier");
+            toast.error(error.response?.data?.message || "Error creating supplier");
         }
     };
 
@@ -79,10 +80,10 @@ export default function Suppliers() {
             setShowEditModal(false);
             resetForm();
             fetchSuppliers();
-            alert("Supplier updated successfully!");
+            toast.success("Supplier updated successfully!");
         } catch (error) {
             console.error("Error updating supplier:", error);
-            alert(error.response?.data?.message || "Error updating supplier");
+            toast.error(error.response?.data?.message || "Error updating supplier");
         }
     };
 

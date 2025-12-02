@@ -7,5 +7,6 @@ export const shiftService = {
     update: (id, data) => API.put(`/shifts/${id}`, data),
     delete: (id) => API.delete(`/shifts/${id}`),
     closeShift: (id, data) => API.post(`/shifts/${id}/close`, data),
+    getShiftSummary: (id) => API.get(`/shifts/${id}/summary`),
     getShiftReport: (id) => API.get(`/reports/shift/${id}`),
 };

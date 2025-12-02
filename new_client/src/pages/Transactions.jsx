@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { transactionService } from "../services/transactionService";
 import { customerService } from "../services/customerService";
@@ -5,6 +6,7 @@ import { supplierService } from "../services/supplierService";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
+import { toast } from 'react-toastify';
 import {
     Search,
     Filter,
@@ -86,7 +88,7 @@ export default function Transactions() {
             }
 
             await transactionService.create(payload);
-            alert("Transaction recorded successfully!");
+            toast.success("Transaction recorded successfully!");
             setShowCreateModal(false);
             setFormData({
                 type: "payment_received",
@@ -99,7 +101,7 @@ export default function Transactions() {
             fetchData();
         } catch (error) {
             console.error("Error creating transaction:", error);
-            alert(error.response?.data?.message || "Error creating transaction");
+            toast.error(error.response?.data?.message || "Error creating transaction");
         }
     };
 
@@ -205,7 +207,7 @@ export default function Transactions() {
                             </div>
                             <div>
                                 <p className="text-sm text-slate-500">Net Cash Flow</p>
-                                <p className={`text-2xl font-bold ${netCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                                <p className={`text - 2xl font - bold ${netCashFlow >= 0 ? 'text-emerald-600' : 'text-red-600'} `}>
                                     ₹{netCashFlow.toLocaleString()}
                                 </p>
                             </div>
@@ -216,28 +218,28 @@ export default function Transactions() {
                     <div className="flex gap-2 bg-slate-100 p-1 rounded-lg w-fit">
                         <button
                             onClick={() => setActiveTab("all")}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "all"
+                            className={`px - 4 py - 2 rounded - lg font - medium transition - colors ${activeTab === "all"
                                     ? "bg-white text-slate-900 shadow-sm"
                                     : "text-slate-600 hover:text-slate-900"
-                                }`}
+                                } `}
                         >
                             All Transactions
                         </button>
                         <button
                             onClick={() => setActiveTab("received")}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "received"
+                            className={`px - 4 py - 2 rounded - lg font - medium transition - colors ${activeTab === "received"
                                     ? "bg-white text-slate-900 shadow-sm"
                                     : "text-slate-600 hover:text-slate-900"
-                                }`}
+                                } `}
                         >
                             Payments Received
                         </button>
                         <button
                             onClick={() => setActiveTab("made")}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "made"
+                            className={`px - 4 py - 2 rounded - lg font - medium transition - colors ${activeTab === "made"
                                     ? "bg-white text-slate-900 shadow-sm"
                                     : "text-slate-600 hover:text-slate-900"
-                                }`}
+                                } `}
                         >
                             Payments Made
                         </button>
@@ -302,8 +304,8 @@ export default function Transactions() {
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                                                 {getPartyName(txn)}
                                             </td>
-                                            <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${txn.type === 'payment_received' || txn.type === 'sale' ? 'text-emerald-600' : 'text-red-600'
-                                                }`}>
+                                            <td className={`px - 6 py - 4 whitespace - nowrap text - sm font - medium ${txn.type === 'payment_received' || txn.type === 'sale' ? 'text-emerald-600' : 'text-red-600'
+                                                } `}>
                                                 {txn.type === 'payment_received' || txn.type === 'sale' ? '+' : '-'}₹{txn.amount.toLocaleString()}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 capitalize">

@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect } from "react";
 import { transactionService } from "../services/transactionService";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { toast } from 'react-toastify';
 import { Card } from "../components/ui/Card";
 import {
     Plus,
@@ -83,7 +85,7 @@ export default function Expenses() {
             };
 
             await transactionService.create(payload);
-            alert("Expense recorded successfully!");
+            toast.success("Expense recorded successfully!");
             setFormData({
                 category: "Salary",
                 amount: "",
@@ -95,7 +97,7 @@ export default function Expenses() {
             setActiveTab("history");
         } catch (error) {
             console.error("Error creating expense:", error);
-            alert(error.response?.data?.message || "Error creating expense");
+            toast.error(error.response?.data?.message || "Error creating expense");
         }
     };
 
@@ -162,28 +164,28 @@ export default function Expenses() {
                     <div className="flex gap-2 bg-slate-100 p-1 rounded-lg w-fit">
                         <button
                             onClick={() => setActiveTab("add")}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "add"
+                            className={`px - 4 py - 2 rounded - lg font - medium transition - colors ${activeTab === "add"
                                     ? "bg-white text-slate-900 shadow-sm"
                                     : "text-slate-600 hover:text-slate-900"
-                                }`}
+                                } `}
                         >
                             Add Expense
                         </button>
                         <button
                             onClick={() => setActiveTab("history")}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "history"
+                            className={`px - 4 py - 2 rounded - lg font - medium transition - colors ${activeTab === "history"
                                     ? "bg-white text-slate-900 shadow-sm"
                                     : "text-slate-600 hover:text-slate-900"
-                                }`}
+                                } `}
                         >
                             Expense History
                         </button>
                         <button
                             onClick={() => setActiveTab("analysis")}
-                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "analysis"
+                            className={`px - 4 py - 2 rounded - lg font - medium transition - colors ${activeTab === "analysis"
                                     ? "bg-white text-slate-900 shadow-sm"
                                     : "text-slate-600 hover:text-slate-900"
-                                }`}
+                                } `}
                         >
                             Analysis
                         </button>
@@ -356,13 +358,13 @@ export default function Expenses() {
                                             fill="#8884d8"
                                             paddingAngle={5}
                                             dataKey="value"
-                                            label={({ name, value }) => `${name}: ₹${value / 1000}k`}
+                                            label={({ name, value }) => `${name}: ₹${value / 1000} k`}
                                         >
                                             {getCategoryData().map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                <Cell key={`cell - ${index} `} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>
-                                        <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
+                                        <Tooltip formatter={(value) => `₹${value.toLocaleString()} `} />
                                         <Legend />
                                     </RechartsPieChart>
                                 </ResponsiveContainer>
@@ -377,7 +379,7 @@ export default function Expenses() {
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
                                         <XAxis dataKey="name" axisLine={false} tickLine={false} />
                                         <YAxis axisLine={false} tickLine={false} />
-                                        <Tooltip formatter={(value) => `₹${value.toLocaleString()}`} />
+                                        <Tooltip formatter={(value) => `₹${value.toLocaleString()} `} />
                                         <Line
                                             type="monotone"
                                             dataKey="amount"

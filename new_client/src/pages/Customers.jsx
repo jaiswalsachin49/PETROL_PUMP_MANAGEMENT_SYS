@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { customerService } from "../services/customerService";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { toast } from 'react-toastify';
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import {
@@ -44,6 +45,7 @@ export default function Customers() {
         }
     });
 
+
     useEffect(() => {
         fetchCustomers();
     }, []);
@@ -65,12 +67,26 @@ export default function Customers() {
         try {
             await customerService.create(formData);
             setShowCreateModal(false);
-            resetForm();
             fetchCustomers();
-            alert("Customer created successfully!");
+            setFormData({
+                name: "",
+                phone: "", // Changed from contactNumber
+                email: "",
+                saleType: "credit",
+                creditLimit: "",
+                companyName: "",
+                gstNumber: "",
+                address: {
+                    street: "",
+                    city: "",
+                    state: "",
+                    zipCode: ""
+                }
+            });
+            toast.success("Customer created successfully!");
         } catch (error) {
             console.error("Error creating customer:", error);
-            alert(error.response?.data?.message || "Error creating customer");
+            toast.error(error.response?.data?.message || "Error creating customer");
         }
     };
 
@@ -79,12 +95,11 @@ export default function Customers() {
         try {
             await customerService.update(selectedCustomer._id, formData);
             setShowEditModal(false);
-            resetForm();
             fetchCustomers();
-            alert("Customer updated successfully!");
+            toast.success("Customer updated successfully!");
         } catch (error) {
             console.error("Error updating customer:", error);
-            alert(error.response?.data?.message || "Error updating customer");
+            toast.error(error.response?.data?.message || "Error updating customer");
         }
     };
 
@@ -190,8 +205,8 @@ export default function Customers() {
                         <button
                             onClick={() => setActiveTab("all")}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "all"
-                                    ? "bg-orange-100 text-orange-700"
-                                    : "text-slate-600 hover:bg-slate-100"
+                                ? "bg-orange-100 text-orange-700"
+                                : "text-slate-600 hover:bg-slate-100"
                                 }`}
                         >
                             All Customers
@@ -199,8 +214,8 @@ export default function Customers() {
                         <button
                             onClick={() => setActiveTab("credit")}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "credit"
-                                    ? "bg-orange-100 text-orange-700"
-                                    : "text-slate-600 hover:bg-slate-100"
+                                ? "bg-orange-100 text-orange-700"
+                                : "text-slate-600 hover:bg-slate-100"
                                 }`}
                         >
                             Credit Customers
@@ -208,8 +223,8 @@ export default function Customers() {
                         <button
                             onClick={() => setActiveTab("overdue")}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "overdue"
-                                    ? "bg-orange-100 text-orange-700"
-                                    : "text-slate-600 hover:bg-slate-100"
+                                ? "bg-orange-100 text-orange-700"
+                                : "text-slate-600 hover:bg-slate-100"
                                 }`}
                         >
                             Overdue Customers

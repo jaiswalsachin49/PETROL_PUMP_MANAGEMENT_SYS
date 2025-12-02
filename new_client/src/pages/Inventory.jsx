@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import { inventoryService } from "../services/inventoryService";
 import { supplierService } from "../services/supplierService";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { toast } from 'react-toastify';
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import {
@@ -67,10 +69,10 @@ export default function Inventory() {
             setShowCreateModal(false);
             resetForm();
             fetchData();
-            alert("Item created successfully!");
+            toast.success("Item created successfully!");
         } catch (error) {
             console.error("Error creating item:", error);
-            alert(error.response?.data?.message || "Error creating item");
+            toast.error(error.response?.data?.message || "Error creating item");
         }
     };
 
@@ -81,10 +83,10 @@ export default function Inventory() {
             setShowEditModal(false);
             resetForm();
             fetchData();
-            alert("Item updated successfully!");
+            toast.success("Item updated successfully!");
         } catch (error) {
             console.error("Error updating item:", error);
-            alert(error.response?.data?.message || "Error updating item");
+            toast.error(error.response?.data?.message || "Error updating item");
         }
     };
 

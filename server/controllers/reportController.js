@@ -13,14 +13,62 @@ const mongoose = require('mongoose');
 // @route   GET /api/reports/dashboard
 // @access  Private
 const getDashboardSummary = async (req, res) => {
+    console.log('\n🔥 getDashboardSummary CALLED at', new Date().toISOString());
     try {
         const lastTwoShift = await Shift.find({ status: 'closed' })
             .sort({ shiftNumber: -1 })
             .limit(2)
             .lean();
 
-        // If no shifts exist, return empty data instead of error
+        console.log('📊 Found', lastTwoShift.length, 'closed shifts');
+
+        // If no shifts exist, still show TODAY's sales
         if (!lastTwoShift || lastTwoShift.length === 0) {
+            console.log('⚠️ NO CLOSED SHIFTS - But will show today\'s sales');
+
+            // Get today in IST timezone (UTC+5:30)
+            const now = new Date();
+            const istOffset = 5.5 * 60 * 60 * 1000;
+            const istNow = new Date(now.getTime() + istOffset);
+
+            const today = new Date(istNow);
+            today.setHours(0, 0, 0, 0);
+            const todayUTC = new Date(today.getTime() - istOffset);
+
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tomorrowUTC = new Date(tomorrow.getTime() - istOffset);
+
+            console.log('Today IST:', today, '→ UTC:', todayUTC);
+
+            // Get TODAY's sales
+            const todaySalesData = await Sale.aggregate([
+                {
+                    $match: {
+                        $or: [
+                            { date: { $gte: todayUTC, $lt: tomorrowUTC } },
+                            { createdAt: { $gte: todayUTC, $lt: tomorrowUTC } }
+                        ]
+                    }
+                },
+                {
+                    $group: {
+                        _id: null,
+                        totalSalesAmount: { $sum: "$totalAmount" },
+                        totalQuantitySold: { $sum: "$quantity" },
+                        totalTransactions: { $sum: 1 }
+                    }
+                }
+            ]);
+
+            const todayStats = todaySalesData[0] || {
+                totalSalesAmount: 0,
+                totalQuantitySold: 0,
+                totalTransactions: 0
+            };
+
+            console.log('📈 Today\'s sales:', todayStats);
+
             const tanks = await Tank.find().lean();
             const tankLevels = tanks.map(tank => ({
                 tankId: tank._id,
@@ -34,24 +82,77 @@ const getDashboardSummary = async (req, res) => {
                 status: 'Active'
             });
 
+            // Get pump-wise sales for today
+            const pumps = await Pump.find().populate('tankId', 'tankNumber fuelType').lean();
+            const pumpSales = await Sale.aggregate([
+                {
+                    $match: {
+                        $or: [
+                            { date: { $gte: todayUTC, $lt: tomorrowUTC } },
+                            { createdAt: { $gte: todayUTC, $lt: tomorrowUTC } }
+                        ]
+                    }
+                },
+                {
+                    $group: {
+                        _id: '$pumpId',
+                        todaySales: { $sum: '$totalAmount' },
+                        todaySalesQty: { $sum: '$quantity' }
+                    }
+                }
+            ]);
+
+            const salesMap = {};
+            pumpSales.forEach(s => {
+                salesMap[s._id.toString()] = {
+                    amount: s.todaySales,
+                    quantity: s.todaySalesQty
+                };
+            });
+
+            const todayPumpSales = pumps.map(pump => {
+                const sales = salesMap[pump._id.toString()] || { amount: 0, quantity: 0 };
+                return {
+                    id: pump._id,
+                    name: pump.pumpNumber,
+                    type: pump.tankId?.fuelType || 'Unknown',
+                    tank: `Tank ${pump.tankId?.tankNumber || 'N/A'}`,
+                    status: pump.status === 'active' ? 'Active' : 'Maintenance',
+                    todaySalesAmount: sales.amount,
+                    todaySalesQuantity: sales.quantity,
+                    color: pump.status === 'active' ? 'emerald' : 'orange'
+                };
+            });
+
+            const totalStaff = await Employee.countDocuments({ isActive: true });
+
             return res.status(200).json({
                 success: true,
                 data: {
-                    lastShift: null,
-                    totalSalesAmount: 0,
-                    totalQuantitySold: 0,
-                    totalTransactions: 0,
-                    revenueChange: 0,
-                    quantityChange: 0,
-                    transactionChange: 0,
-                    activeStaff: 0,
-                    totalStaff: await Employee.countDocuments({ isActive: true }),
-                    staffUtilization: 0,
-                    tankLevels: tankLevels,
-                    lowFuelTanks: lowFuelTanks,
-                    alerts: lowFuelTanks > 0 ? [`${lowFuelTanks} tank(s) running low on fuel`] : []
+                    lastShift: {
+                        revenue: todayStats.totalSalesAmount,
+                        revenueChange: '+0%',
+                        vehicles: todayStats.totalTransactions,
+                        vehicleChange: '+0%',
+                        fuelQuantity: todayStats.totalQuantitySold,
+                        quantityChange: '+0%',
+                        activeStaff: `0 / ${totalStaff}`,
+                        staffUtilization: '0%',
+                        startTime: null,
+                        endTime: null,
+                        tankLevels: tankLevels,
+                        todayPumpSales: todayPumpSales
+                    },
+                    previousShift: {
+                        revenue: 0,
+                        vehicles: 0,
+                        fuelQuantity: 0
+                    },
+                    alerts: {
+                        lowFuelTanks
+                    }
                 },
-                message: 'No shifts data available yet'
+                message: 'Showing today\'s sales (no closed shifts yet)'
             });
         }
         const lastShift = lastTwoShift[0];
@@ -126,15 +227,74 @@ const getDashboardSummary = async (req, res) => {
             status: 'Active'
         });
 
-        const today = new Date();
+        // Get today in IST timezone (UTC+5:30)
+        const now = new Date();
+        const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
+        const istNow = new Date(now.getTime() + istOffset);
+
+        const today = new Date(istNow);
         today.setHours(0, 0, 0, 0);
+        const todayUTC = new Date(today.getTime() - istOffset);
+
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
+        const tomorrowUTC = new Date(tomorrow.getTime() - istOffset);
+
+        console.log('===== DASHBOARD DEBUG =====');
+        console.log('IST Now:', istNow.toISOString());
+        console.log('Today IST:', today, '→ UTC:', todayUTC);
+        console.log('Tomorrow IST:', tomorrow, '→ UTC:', tomorrowUTC);
+
+        // Try both date and createdAt fields for maximum compatibility
+        const todaySalesData = await Sale.aggregate([
+            {
+                $match: {
+                    $or: [
+                        { date: { $gte: todayUTC, $lt: tomorrowUTC } },
+                        { createdAt: { $gte: todayUTC, $lt: tomorrowUTC } }
+                    ]
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalSalesAmount: { $sum: "$totalAmount" },
+                    totalQuantitySold: { $sum: "$quantity" },
+                    totalTransactions: { $sum: 1 }
+                }
+            }
+        ]);
+
+        console.log('Today sales aggregation result:', todaySalesData);
+
+        // Check counts separately
+        const countByDate = await Sale.countDocuments({ date: { $gte: todayUTC, $lt: tomorrowUTC } });
+        const countByCreatedAt = await Sale.countDocuments({ createdAt: { $gte: todayUTC, $lt: tomorrowUTC } });
+        console.log('Sales count by date field:', countByDate);
+        console.log('Sales count by createdAt field:', countByCreatedAt);
+
+        // Check sample of ALL sales with dates
+        const sampleSales = await Sale.find().sort({ createdAt: -1 }).limit(5).select('date totalAmount quantity createdAt saleId');
+        console.log('Sample recent sales:', JSON.stringify(sampleSales, null, 2));
+        console.log('===== END DEBUG =====');
+
+        const todayStats = todaySalesData[0] || {
+            totalSalesAmount: 0,
+            totalQuantitySold: 0,
+            totalTransactions: 0
+        };
 
         const pumps = await Pump.find().populate('tankId', 'tankNumber fuelType').lean();
 
         const pumpSales = await Sale.aggregate([
-            { $match: { date: { $gte: today, $lt: tomorrow } } },
+            {
+                $match: {
+                    $or: [
+                        { date: { $gte: todayUTC, $lt: tomorrowUTC } },
+                        { createdAt: { $gte: todayUTC, $lt: tomorrowUTC } }
+                    ]
+                }
+            },
             {
                 $group: {
                     _id: '$pumpId',
@@ -167,15 +327,19 @@ const getDashboardSummary = async (req, res) => {
         });
 
 
+        // Prevent caching during debugging
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+
         res.status(200).json({
             success: true,
             data: {
                 lastShift: {
-                    revenue: lastStats.totalSalesAmount,
+                    revenue: todayStats.totalSalesAmount, // Use today's real-time sales
                     revenueChange: `${revenueChange >= 0 ? '+' : ''}${revenueChange}%`,
-                    vehicles: lastStats.totalTransactions,
+                    vehicles: todayStats.totalTransactions, // Use today's real-time transactions
                     vehicleChange: `${transactionChange >= 0 ? '+' : ''}${transactionChange}%`,
-                    fuelQuantity: lastStats.totalQuantitySold,
+                    fuelQuantity: todayStats.totalQuantitySold, // Use today's real-time quantity
                     quantityChange: `${quantityChange >= 0 ? '+' : ''}${quantityChange}%`,
                     activeStaff: `${activeStaff} / ${totalStaff}`,
                     staffUtilization: totalStaff === 0 ? 100 : ((activeStaff / totalStaff) * 100).toFixed(2) + '%',

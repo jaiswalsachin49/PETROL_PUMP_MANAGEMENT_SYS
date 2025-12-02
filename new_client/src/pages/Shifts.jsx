@@ -4,6 +4,7 @@ import { tankService } from "../services/tankService";
 import { pumpService } from "../services/pumpService";
 import { employeeService } from "../services/employeeService";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { toast } from 'react-toastify';
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import {
@@ -102,15 +103,18 @@ export default function Shifts() {
         try {
             await shiftService.create(createForm);
             setShowCreateModal(false);
+            fetchShifts();
+            // Reset form
             setCreateForm({
                 openingCash: 0,
                 assignedEmployees: [],
                 supervisorId: "",
                 startTime: new Date().toISOString().slice(0, 16),
             });
-            fetchShifts();
+            toast.success("Shift started successfully!");
         } catch (error) {
-            alert(error.response?.data?.message || "Error creating shift");
+            console.error("Error creating shift:", error);
+            toast.error(error.response?.data?.message || "Error creating shift");
         }
     };
 
@@ -128,6 +132,7 @@ export default function Shifts() {
                 pumpReadings: []
             });
             fetchShifts();
+            toast.success("Shift closed successfully!");
         } catch (error) {
             console.error('Close shift error:', error);
             console.error('Response:', error.response?.data);
@@ -135,35 +140,74 @@ export default function Shifts() {
         }
     };
 
-    const openCloseModal = (shift) => {
+    const openCloseModal = async (shift) => {
         setSelectedShift(shift);
-        const tankReadings = tanks.map(tank => ({
-            tankId: tank._id,
-            tankName: tank.name,
-            fuelType: tank.fuelType,
-            openingReading: tank.currentLevel || 0,
-            closingReading: tank.currentLevel || 0
-        }));
 
-        // Initialize pump readings for all pumps
-        const pumpReadings = pumps.flatMap(pump =>
-            pump.nozzles?.map(nozzle => ({
-                pumpId: pump._id,
-                pumpName: pump.pumpNumber,
-                nozzleId: nozzle._id,
-                nozzleName: nozzle.nozzleId,
-                fuelType: nozzle.fuelType || nozzle.fueltype,
-                openingReading: nozzle.currentReading || 0,
-                closingReading: nozzle.currentReading || 0
-            })) || []
-        );
+        try {
+            // Fetch shift summary to get auto-calculated closing cash
+            const summaryRes = await shiftService.getShiftSummary(shift._id);
+            const summary = summaryRes.data.data;
 
-        setCloseForm({
-            ...closeForm,
-            pumpReadings,
-            tankReadings
-        });
-        setShowCloseModal(true);
+            const tankReadings = tanks.map(tank => ({
+                tankId: tank._id,
+                tankName: tank.name,
+                fuelType: tank.fuelType,
+                openingReading: tank.currentLevel || 0,
+                closingReading: tank.currentLevel || 0
+            }));
+
+            // Initialize pump readings for all pumps
+            const pumpReadings = pumps.flatMap(pump =>
+                pump.nozzles?.map(nozzle => ({
+                    pumpId: pump._id,
+                    pumpName: pump.pumpNumber,
+                    nozzleId: nozzle._id,
+                    nozzleName: nozzle.nozzleId,
+                    fuelType: nozzle.fuelType || nozzle.fueltype,
+                    openingReading: nozzle.currentReading || 0,
+                    closingReading: nozzle.currentReading || 0
+                })) || []
+            );
+
+            setCloseForm({
+                closingCash: summary.suggestedClosingCash || 0, // Auto-populate from summary
+                endTime: new Date().toISOString().slice(0, 16),
+                pumpReadings,
+                tankReadings
+            });
+            setShowCloseModal(true);
+        } catch (error) {
+            console.error('Error fetching shift summary:', error);
+            // Fallback to manual entry if fetch fails
+            const tankReadings = tanks.map(tank => ({
+                tankId: tank._id,
+                tankName: tank.name,
+                fuelType: tank.fuelType,
+                openingReading: tank.currentLevel || 0,
+                closingReading: tank.currentLevel || 0
+            }));
+
+            const pumpReadings = pumps.flatMap(pump =>
+                pump.nozzles?.map(nozzle => ({
+                    pumpId: pump._id,
+                    pumpName: pump.pumpNumber,
+                    nozzleId: nozzle._id,
+                    nozzleName: nozzle.nozzleId,
+                    fuelType: nozzle.fuelType || nozzle.fueltype,
+                    openingReading: nozzle.currentReading || 0,
+                    closingReading: nozzle.currentReading || 0
+                })) || []
+            );
+
+            setCloseForm({
+                closingCash: 0,
+                endTime: new Date().toISOString().slice(0, 16),
+                pumpReadings,
+                tankReadings
+            });
+            setShowCloseModal(true);
+            toast.error('Could not fetch shift summary. Please enter closing cash manually.');
+        }
     };
 
     const openDetailsModal = (shift) => {

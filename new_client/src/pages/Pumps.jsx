@@ -3,6 +3,7 @@ import { pumpService } from "../services/pumpService";
 import { tankService } from "../services/tankService";
 import { employeeService } from "../services/employeeService";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { toast } from 'react-toastify';
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import {
@@ -92,11 +93,11 @@ export default function Pumps() {
                 status: "active",
                 locationDescription: ""
             });
-            fetchInitialData();
-            alert("Pump created successfully!");
+            fetchPumps();
+            toast.success("Pump created successfully!");
         } catch (error) {
             console.error("Error creating pump:", error);
-            alert(error.response?.data?.message || "Error creating pump");
+            toast.error(error.response?.data?.message || "Error creating pump");
         }
     };
 
@@ -105,11 +106,11 @@ export default function Pumps() {
         try {
             await pumpService.update(selectedPump._id, updateForm);
             setShowUpdateModal(false);
-            fetchInitialData();
-            alert("Pump updated successfully!");
+            fetchPumps();
+            toast.success("Pump updated successfully!");
         } catch (error) {
             console.error("Error updating pump:", error);
-            alert(error.response?.data?.message || "Error updating pump");
+            toast.error(error.response?.data?.message || "Error updating pump");
         }
     };
 
@@ -118,27 +119,34 @@ export default function Pumps() {
         try {
             if (selectedNozzle) {
                 // Update existing nozzle
-                await pumpService.updateNozzleReading(selectedPump._id, selectedNozzle._id, {
+                await pumpService.updateNozzleReading(selectedPump._id, selectedNozzle.nozzleId, {
                     currentReading: parseFloat(nozzleForm.currentReading)
                 });
-                alert("Nozzle updated successfully!");
+                toast.success("Nozzle updated successfully!");
             } else {
                 // Add new nozzle
-                await pumpService.addNozzle(selectedPump._id, nozzleForm);
-                alert("Nozzle added successfully!");
+                await pumpService.addNozzle(selectedPump._id, {
+                    ...nozzleForm,
+                    currentReading: parseFloat(nozzleForm.currentReading)
+                });
+                toast.success("Nozzle added successfully!");
             }
+
             setShowNozzleModal(false);
-            setSelectedNozzle(null);
+            fetchPumps(); // Refresh data
+
+            // Reset form
             setNozzleForm({
                 nozzleId: "",
                 fueltype: "petrol",
-                currentReading: 0,
+                currentReading: "",
                 assignedEmployee: ""
             });
-            fetchInitialData();
+            setSelectedNozzle(null);
+
         } catch (error) {
-            console.error("Error with nozzle:", error);
-            alert(error.response?.data?.message || "Error with nozzle operation");
+            console.error("Error with nozzle operation:", error);
+            toast.error(error.response?.data?.message || "Error with nozzle operation");
         }
     };
 
@@ -146,21 +154,21 @@ export default function Pumps() {
         e.preventDefault();
         try {
             const endpoint = `/pumps/${selectedPump._id}/nozzles/${selectedNozzle._id}/assign`;
-            await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}${endpoint}`, {
+            await fetch(`http://localhost:5000/api/pumps/${selectedPump._id}/nozzles/${selectedNozzle.nozzleId}/assign`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${localStorage.getItem('token')}`
                 },
-                body: JSON.stringify({ assignedEmployee: assignForm.assignedEmployee || null })
+                body: JSON.stringify({ employeeId: assignForm.assignedEmployee })
             });
+
+            toast.success("Employee assigned successfully!");
             setShowAssignModal(false);
-            setAssignForm({ assignedEmployee: "" });
-            fetchInitialData();
-            alert("Employee assigned successfully!");
+            fetchPumps();
         } catch (error) {
             console.error("Error assigning employee:", error);
-            alert("Error assigning employee");
+            toast.error("Error assigning employee");
         }
     };
 

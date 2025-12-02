@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { employeeService } from "../services/employeeService";
 import LoadingSpinner from "../components/LoadingSpinner";
+import { toast } from 'react-toastify';
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import {
@@ -67,10 +68,10 @@ export default function Employees() {
             setShowCreateModal(false);
             resetForm();
             fetchEmployees();
-            alert("Employee created successfully!");
+            toast.success("Employee created successfully!");
         } catch (error) {
             console.error("Error creating employee:", error);
-            alert(error.response?.data?.message || "Error creating employee");
+            toast.error(error.response?.data?.message || "Error creating employee");
         }
     };
 
@@ -81,10 +82,10 @@ export default function Employees() {
             setShowEditModal(false);
             resetForm();
             fetchEmployees();
-            alert("Employee updated successfully!");
+            toast.success("Employee updated successfully!");
         } catch (error) {
             console.error("Error updating employee:", error);
-            alert(error.response?.data?.message || "Error updating employee");
+            toast.error(error.response?.data?.message || "Error updating employee");
         }
     };
 

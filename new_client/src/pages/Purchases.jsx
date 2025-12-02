@@ -4,6 +4,7 @@ import { supplierService } from "../services/supplierService";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { Card } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
+import { toast } from 'react-toastify';
 import {
     Search,
     Filter,
@@ -81,7 +82,7 @@ export default function Purchases() {
             };
             // console.log(payload);
             await purchaseService.create(payload);
-            alert("Purchase recorded successfully!");
+            toast.success("Purchase recorded successfully!");
             setFormData({
                 supplierId: "",
                 itemType: "Petrol",
@@ -95,7 +96,7 @@ export default function Purchases() {
             setActiveTab("history");
         } catch (error) {
             console.error("Error creating purchase:", error);
-            alert(error.response?.data?.message || "Error creating purchase");
+            toast.error(error.response?.data?.message || "Error creating purchase");
         }
     };
 
@@ -139,8 +140,8 @@ export default function Purchases() {
                         <button
                             onClick={() => setActiveTab("record")}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "record"
-                                    ? "bg-orange-100 text-orange-700"
-                                    : "text-slate-600 hover:bg-slate-100"
+                                ? "bg-orange-100 text-orange-700"
+                                : "text-slate-600 hover:bg-slate-100"
                                 }`}
                         >
                             Record Purchase
@@ -148,8 +149,8 @@ export default function Purchases() {
                         <button
                             onClick={() => setActiveTab("history")}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "history"
-                                    ? "bg-orange-100 text-orange-700"
-                                    : "text-slate-600 hover:bg-slate-100"
+                                ? "bg-orange-100 text-orange-700"
+                                : "text-slate-600 hover:bg-slate-100"
                                 }`}
                         >
                             Purchase History

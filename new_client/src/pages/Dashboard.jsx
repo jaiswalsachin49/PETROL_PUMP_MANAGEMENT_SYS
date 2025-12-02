@@ -65,6 +65,9 @@ export default function Dashboard() {
     const [todayTotalQuantity, setTodayTotalQuantity] = useState(0);
     const [totalFuelStock, setTotalFuelStock] = useState(0);
 
+    const [lastRefreshed, setLastRefreshed] = useState(new Date());
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
     const fuelColors = {
         Petrol: "#3b82f6", // Blue
         Diesel: "#10b981", // Emerald
@@ -91,84 +94,106 @@ export default function Dashboard() {
         { name: "Premium", percentage: 15, color: "#f59e0b" },
     ];
 
+    const fetchDashboardData = async () => {
+        try {
+            // Fetch dashboard summary
+            const summaryRes = await dashboardService.getDashboardSummary();
+            const responseData = summaryRes.data.data;
+            setDataForCard(responseData);
+            setCardLoading(false);
+
+            // Access todayPumpSales from lastShift or root level
+            const pumpSales = responseData.lastShift?.todayPumpSales || responseData.todayPumpSales || [];
+            setTodaySales(pumpSales.map(sale => sale.todaySalesAmount || 0).reduce((a, b) => a + b, 0));
+            setTodayTotalQuantity(pumpSales.map(sale => sale.todaySalesQuantity || 0).reduce((a, b) => a + b, 0));
+
+            // Fetch shift sales trend
+            dashboardService
+                .getShiftSalesTrend()
+                .then((res) => {
+                    setHourlyData(res.data.data.length ? res.data.data : sampleHourlyData);
+                    setHourlyLoading(false);
+                })
+                .catch((error) => {
+                    console.log(error);
+                    setHourlyData(sampleHourlyData);
+                    setHourlyLoading(false);
+                });
+
+            // Fetch fuel distribution
+            dashboardService
+                .getFuelDistribution()
+                .then((res) => {
+                    setFuelDistribution(
+                        res.data.data.length ? res.data.data : sampleFuelDistribution
+                    );
+                    setFuelLoading(false);
+                })
+                .catch((error) => {
+                    console.log(error);
+                    setFuelDistribution(sampleFuelDistribution);
+                    setFuelLoading(false);
+                });
+
+            // Fetch tank levels
+            const tanksRes = await dashboardService.getTankLevels();
+            const tanks = tanksRes.data.data.map((t) => ({
+                ...t,
+                statusColor:
+                    t.status === "good"
+                        ? "bg-emerald-500"
+                        : t.status === "low"
+                            ? "bg-yellow-500"
+                            : "bg-red-500",
+            }));
+            setTanksLevel(tanks);
+            setTotalFuelStock(tanks.reduce((acc, curr) => acc + curr.current, 0));
+            setTankLoading(false);
+
+            // Fetch weekly performance
+            dashboardService
+                .getWeeklyPerformance()
+                .then((res) => {
+                    setWeeklyPerformance(res.data.data);
+                    setWeeklyLoading(false);
+                })
+                .catch((error) => console.log(error));
+
+            // Fetch recent activity
+            dashboardService
+                .getRecentActivity(5)
+                .then((res) => {
+                    setRecentActivity(res.data.data);
+                    setRecentLoading(false);
+                })
+                .catch((error) => console.log(error));
+
+            // Fetch overdue credits
+            const creditsRes = await creditService.getOverdueCredits();
+            setTotalOverDueCredits(creditsRes.data.data.length);
+
+            setLastRefreshed(new Date());
+        } catch (error) {
+            console.error('Error fetching dashboard data:', error);
+        } finally {
+            setIsRefreshing(false);
+        }
+    };
+
+    const handleManualRefresh = () => {
+        setIsRefreshing(true);
+        fetchDashboardData();
+    };
+
     useEffect(() => {
-        dashboardService
-            .getDashboardSummary()
-            .then((res) => {
-                setDataForCard(res.data.data);
-                setCardLoading(false);
-                const pumpSales = res.data.data.todayPumpSales || [];
-                setTodaySales(pumpSales.map(sale => sale.todaySalesAmount || 0).reduce((a, b) => a + b, 0))
-                setTodayTotalQuantity(pumpSales.map(sale => sale.todaySalesQuantity || 0).reduce((a, b) => a + b, 0))
-            })
-            .catch((error) => console.log(error));
+        fetchDashboardData();
 
-        dashboardService
-            .getShiftSalesTrend()
-            .then((res) => {
-                setHourlyData(res.data.data.length ? res.data.data : sampleHourlyData);
-                setHourlyLoading(false);
-            })
-            .catch((error) => {
-                console.log(error);
-                setHourlyData(sampleHourlyData);
-                setHourlyLoading(false);
-            });
+        // Auto-refresh every 30 seconds
+        const refreshInterval = setInterval(() => {
+            fetchDashboardData();
+        }, 30000);
 
-        dashboardService
-            .getFuelDistribution()
-            .then((res) => {
-                setFuelDistribution(
-                    res.data.data.length ? res.data.data : sampleFuelDistribution
-                );
-                setFuelLoading(false);
-            })
-            .catch((error) => {
-                console.log(error);
-                setFuelDistribution(sampleFuelDistribution);
-                setFuelLoading(false);
-            });
-
-        dashboardService
-            .getTankLevels()
-            .then((res) => {
-                const tanks = res.data.data.map((t) => ({
-                    ...t,
-                    statusColor:
-                        t.status === "good"
-                            ? "bg-emerald-500"
-                            : t.status === "low"
-                                ? "bg-yellow-500"
-                                : "bg-red-500",
-                }));
-                setTanksLevel(tanks);
-                setTotalFuelStock(tanks.reduce((acc, curr) => acc + curr.current, 0));
-                setTankLoading(false);
-            })
-            .catch((error) => console.log(error));
-
-        dashboardService
-            .getWeeklyPerformance()
-            .then((res) => {
-                setWeeklyPerformance(res.data.data);
-                setWeeklyLoading(false);
-            })
-            .catch((error) => console.log(error));
-
-        dashboardService
-            .getRecentActivity(5)
-            .then((res) => {
-                setRecentActivity(res.data.data);
-                setRecentLoading(false);
-            })
-            .catch((error) => console.log(error));
-
-        creditService
-            .getOverdueCredits()
-            .then((res) => {
-                setTotalOverDueCredits(res.data.data.length);
-            })
-            .catch((error) => console.log(error));
+        return () => clearInterval(refreshInterval);
     }, []);
 
     if (
@@ -201,7 +226,18 @@ export default function Dashboard() {
                                     Real-time fuel station monitoring
                                 </p>
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={handleManualRefresh}
+                                    disabled={isRefreshing}
+                                    className="flex items-center gap-2 px-3 py-1.5 bg-white hover:bg-orange-50 border border-slate-200 rounded-lg transition-colors text-sm font-medium text-slate-700 disabled:opacity-50"
+                                >
+                                    <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                    Refresh
+                                </button>
+                                <span className="text-xs text-slate-500">
+                                    Updated: {lastRefreshed.toLocaleTimeString()}
+                                </span>
                                 <span className="text-sm font-medium text-slate-600 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-sm">
                                     {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
                                 </span>
