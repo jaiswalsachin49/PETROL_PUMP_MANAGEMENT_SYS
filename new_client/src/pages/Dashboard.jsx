@@ -99,13 +99,14 @@ export default function Dashboard() {
             // Fetch dashboard summary
             const summaryRes = await dashboardService.getDashboardSummary();
             const responseData = summaryRes.data.data;
+
+
             setDataForCard(responseData);
             setCardLoading(false);
 
-            // Access todayPumpSales from lastShift or root level
-            const pumpSales = responseData.lastShift?.todayPumpSales || responseData.todayPumpSales || [];
-            setTodaySales(pumpSales.map(sale => sale.todaySalesAmount || 0).reduce((a, b) => a + b, 0));
-            setTodayTotalQuantity(pumpSales.map(sale => sale.todaySalesQuantity || 0).reduce((a, b) => a + b, 0));
+            // Use the revenue and quantity from the API response (already calculated for today's all shifts)
+            setTodaySales(responseData.lastShift?.revenue || 0);
+            setTodayTotalQuantity(responseData.lastShift?.fuelQuantity || 0);
 
             // Fetch shift sales trend
             dashboardService

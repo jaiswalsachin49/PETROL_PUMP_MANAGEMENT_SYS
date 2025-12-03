@@ -27,7 +27,9 @@ export default function Employees() {
     const [searchTerm, setSearchTerm] = useState("");
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState(null);
+    const [deleteTarget, setDeleteTarget] = useState(null);
 
     const [formData, setFormData] = useState({
         name: "",
@@ -137,6 +139,26 @@ export default function Employees() {
             e.phone.includes(searchTerm) ||
             e.position.toLowerCase().includes(lowerTerm)
         );
+    };
+
+    const handleDeleteClick = (employee) => {
+        setDeleteTarget(employee);
+        setShowDeleteModal(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deleteTarget) return;
+
+        try {
+            await employeeService.delete(deleteTarget._id);
+            setShowDeleteModal(false);
+            setDeleteTarget(null);
+            fetchEmployees();
+            toast.success("Employee deleted successfully!");
+        } catch (error) {
+            console.error("Error deleting employee:", error);
+            toast.error(error.response?.data?.message || "Error deleting employee");
+        }
     };
 
     const filteredEmployees = getFilteredEmployees();
@@ -254,12 +276,16 @@ export default function Employees() {
                                             <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                                 <button
                                                     onClick={() => openEditModal(employee)}
-                                                    className="text-slate-600 hover:text-orange-600 transition-colors mr-3"
+                                                    className="text-orange-600 hover:text-orange-700 transition-colors mr-3"
                                                 >
                                                     Edit
                                                 </button>
-                                                <button className="text-slate-400 hover:text-slate-600 transition-colors">
-                                                    View
+                                                <button
+                                                    onClick={() => handleDeleteClick(employee)}
+                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                    title="Delete employee"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
                                                 </button>
                                             </td>
                                         </tr>
@@ -443,6 +469,70 @@ export default function Employees() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && deleteTarget && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-red-50">
+                            <h3 className="text-lg font-semibold text-red-900">Delete Employee</h3>
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setDeleteTarget(null);
+                                }}
+                                className="p-2 hover:bg-red-100 rounded-full transition-colors text-red-700"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            {/* Warning Message */}
+                            <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                <User className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1">
+                                    <h4 className="text-sm font-semibold text-red-900">Warning</h4>
+                                    <p className="text-sm text-red-700 mt-1">
+                                        This action cannot be undone. The employee record will be permanently deleted.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Employee Details */}
+                            <div className="space-y-2 p-4 bg-slate-50 rounded-lg">
+                                <h4 className="text-sm font-medium text-slate-900">Employee Details:</h4>
+                                <div className="text-sm text-slate-700 space-y-1">
+                                    <p><span className="font-medium">Name:</span> {deleteTarget.name}</p>
+                                    <p><span className="font-medium">Employee ID:</span> {deleteTarget.employeeId}</p>
+                                    <p><span className="font-medium">Position:</span> {formatPosition(deleteTarget.position)}</p>
+                                    <p><span className="font-medium">Phone:</span> {deleteTarget.phone}</p>
+                                </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowDeleteModal(false);
+                                        setDeleteTarget(null);
+                                    }}
+                                    className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirmDelete}
+                                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                                >
+                                    Delete Employee
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

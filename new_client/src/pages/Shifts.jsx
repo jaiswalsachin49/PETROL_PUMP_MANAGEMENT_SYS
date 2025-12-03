@@ -38,17 +38,25 @@ export default function Shifts() {
     const [currentPage, setCurrentPage] = useState(1);
     const shiftsPerPage = 10;
 
+    // Helper to get local datetime string for input
+    const getLocalDateTimeString = () => {
+        const now = new Date();
+        // Adjust to local timezone offset
+        const local = new Date(now.getTime() - (now.getTimezoneOffset() * 60000));
+        return local.toISOString().slice(0, 16);
+    };
+
     // Form states
     const [createForm, setCreateForm] = useState({
         openingCash: 0,
         assignedEmployees: [],
         supervisorId: "",
-        startTime: new Date().toISOString().slice(0, 16),
+        startTime: getLocalDateTimeString(),
     });
 
     const [closeForm, setCloseForm] = useState({
         closingCash: 0,
-        endTime: new Date().toISOString().slice(0, 16),
+        endTime: getLocalDateTimeString(),
         tankReadings: [],
         pumpReadings: []
     });
@@ -101,20 +109,28 @@ export default function Shifts() {
     const handleCreateShift = async (e) => {
         e.preventDefault();
         try {
-            await shiftService.create(createForm);
+            // Convert local time string to ISO string (UTC)
+            const localDate = new Date(createForm.startTime);
+            const isoStartTime = localDate.toISOString();
+
+            await shiftService.create({
+                ...createForm,
+                startTime: isoStartTime
+            });
             setShowCreateModal(false);
             fetchShifts();
-            // Reset form
+            toast.success("Shift started successfully");
+
+            // Reset form with new current time
             setCreateForm({
                 openingCash: 0,
                 assignedEmployees: [],
                 supervisorId: "",
-                startTime: new Date().toISOString().slice(0, 16),
+                startTime: getLocalDateTimeString(),
             });
-            toast.success("Shift started successfully!");
         } catch (error) {
             console.error("Error creating shift:", error);
-            toast.error(error.response?.data?.message || "Error creating shift");
+            toast.error(error.response?.data?.message || "Failed to start shift");
         }
     };
 
@@ -122,21 +138,20 @@ export default function Shifts() {
         e.preventDefault();
         try {
             console.log('Closing shift with data:', closeForm);
-            await shiftService.closeShift(selectedShift._id, closeForm);
-            setShowCloseModal(false);
-            setSelectedShift(null);
-            setCloseForm({
-                closingCash: 0,
-                endTime: new Date().toISOString().slice(0, 16),
-                tankReadings: [],
-                pumpReadings: []
+            // Convert local time string to ISO string (UTC)
+            const localDate = new Date(closeForm.endTime);
+            const isoEndTime = localDate.toISOString();
+
+            await shiftService.close(selectedShift._id, {
+                ...closeForm,
+                endTime: isoEndTime
             });
+            setShowCloseModal(false);
             fetchShifts();
-            toast.success("Shift closed successfully!");
+            toast.success("Shift closed successfully");
         } catch (error) {
-            console.error('Close shift error:', error);
-            console.error('Response:', error.response?.data);
-            alert(error.response?.data?.message || "Error closing shift");
+            console.error("Error closing shift:", error);
+            toast.error(error.response?.data?.message || "Failed to close shift");
         }
     };
 

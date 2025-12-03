@@ -14,7 +14,10 @@ import {
     Calendar,
     Download,
     Filter,
-    Search
+    Search,
+    Trash2,
+    X,
+    User
 } from "lucide-react";
 
 export default function Attendance() {
@@ -29,8 +32,19 @@ export default function Attendance() {
     });
     const [activeShift, setActiveShift] = useState(null);
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedEmployeeForHistory, setSelectedEmployeeForHistory] = useState(null);
+    const [employeeHistory, setEmployeeHistory] = useState([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
+
+    // Monthly summary state
+    const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [monthlySummary, setMonthlySummary] = useState([]);
+    const [summaryLoading, setSummaryLoading] = useState(false);
 
     const [showMarkModal, setShowMarkModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [deleteTarget, setDeleteTarget] = useState(null);
     const [employees, setEmployees] = useState([]);
     const [markForm, setMarkForm] = useState({
         employeeId: "",
@@ -46,8 +60,12 @@ export default function Attendance() {
     useEffect(() => {
         if (activeTab === "today" && activeShift) {
             fetchShiftAttendance(activeShift._id);
+        } else if (activeTab === "history" && selectedEmployeeForHistory) {
+            fetchEmployeeHistory();
+        } else if (activeTab === "summary") {
+            fetchMonthlySummary();
         }
-    }, [activeTab, activeShift]);
+    }, [activeTab, activeShift, selectedEmployeeForHistory, selectedMonth, selectedYear]);
 
     const fetchInitialData = async () => {
         try {
@@ -144,6 +162,47 @@ export default function Attendance() {
         }
     };
 
+    const handleDeleteClick = (record) => {
+        setDeleteTarget(record);
+        setShowDeleteModal(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!deleteTarget || !activeShift) return;
+
+        try {
+            // Find the attendance record ID for this employee and shift
+            const employee = employees.find(e => e._id === deleteTarget._id);
+            if (!employee) {
+                toast.error("Employee not found");
+                return;
+            }
+
+            // Get employee's attendance data to find the specific attendance ID
+            const empAttendanceRes = await attendanceService.getEmployeeAttendance(deleteTarget._id);
+            const attendanceRecord = empAttendanceRes.data.data.attendance.find(
+                att => att.shiftId && att.shiftId._id === activeShift._id
+            );
+
+            if (!attendanceRecord) {
+                toast.error("Attendance record not found");
+                return;
+            }
+
+            await attendanceService.deleteAttendance(deleteTarget._id, attendanceRecord._id);
+            setShowDeleteModal(false);
+            setDeleteTarget(null);
+
+            // Refresh data
+            fetchShiftAttendance(activeShift._id);
+            fetchInitialData();
+            toast.success("Attendance deleted successfully!");
+        } catch (error) {
+            console.error("Error deleting attendance:", error);
+            toast.error(error.response?.data?.message || "Error deleting attendance");
+        }
+    };
+
     const fetchShiftAttendance = async (shiftId) => {
         try {
             setLoading(true);
@@ -153,6 +212,34 @@ export default function Attendance() {
             console.error("Error fetching shift attendance:", error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchEmployeeHistory = async () => {
+        if (!selectedEmployeeForHistory) return;
+
+        try {
+            setHistoryLoading(true);
+            const res = await attendanceService.getEmployeeAttendance(selectedEmployeeForHistory._id);
+            setEmployeeHistory(res.data.data.attendance || []);
+        } catch (error) {
+            console.error("Error fetching employee history:", error);
+            toast.error("Failed to fetch attendance history");
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
+    const fetchMonthlySummary = async () => {
+        try {
+            setSummaryLoading(true);
+            const res = await attendanceService.getMonthlySummary(selectedMonth, selectedYear);
+            setMonthlySummary(res.data.data.employees || []);
+        } catch (error) {
+            console.error("Error fetching monthly summary:", error);
+            toast.error("Failed to fetch monthly summary");
+        } finally {
+            setSummaryLoading(false);
         }
     };
 
@@ -309,12 +396,13 @@ export default function Attendance() {
                                         <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Check In</th>
                                         <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Check Out</th>
                                         <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
+                                        <th className="px-6 py-3 text-right text-xs font-semibold text-slate-600 uppercase tracking-wider">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="bg-white divide-y divide-slate-200">
                                     {attendanceData.length === 0 ? (
                                         <tr>
-                                            <td colSpan="6" className="px-6 py-12 text-center text-slate-500">
+                                            <td colSpan="7" className="px-6 py-12 text-center text-slate-500">
                                                 {activeShift ? "No attendance records found for active shift" : "No active shift currently running"}
                                             </td>
                                         </tr>
@@ -358,21 +446,210 @@ export default function Attendance() {
                                                         </Badge>
                                                     )}
                                                 </td>
+                                                <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                                    {record.status !== 'not_marked' && (
+                                                        <button
+                                                            onClick={() => handleDeleteClick(record)}
+                                                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                            title="Delete attendance"
+                                                        >
+                                                            <Trash2 className="w-4 h-4" />
+                                                        </button>
+                                                    )}
+                                                </td>
                                             </tr>
                                         ))
                                     )}
                                 </tbody>
                             </table>
                         </div>
+                    ) : activeTab === "history" ? (
+                        <div className="space-y-4">
+                            {/* Filters */}
+                            <div className="flex gap-4">
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Select Employee</label>
+                                    <select
+                                        value={selectedEmployeeForHistory?._id || ""}
+                                        onChange={(e) => {
+                                            const emp = employees.find(emp => emp._id === e.target.value);
+                                            setSelectedEmployeeForHistory(emp || null);
+                                        }}
+                                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                    >
+                                        <option value="">Select an employee</option>
+                                        {employees.map(emp => (
+                                            <option key={emp._id} value={emp._id}>
+                                                {emp.name} - {emp.position}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Attendance History Table */}
+                            {selectedEmployeeForHistory ? (
+                                historyLoading ? (
+                                    <div className="flex justify-center items-center py-12">
+                                        <LoadingSpinner />
+                                    </div>
+                                ) : (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead className="bg-slate-50 border-b border-slate-200">
+                                                <tr>
+                                                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Date</th>
+                                                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Shift</th>
+                                                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Status</th>
+                                                    <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Notes</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="bg-white divide-y divide-slate-200">
+                                                {employeeHistory.length > 0 ? (
+                                                    employeeHistory.map((record, index) => (
+                                                        <tr key={index} className="hover:bg-slate-50">
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                                                                {new Date(record.date).toLocaleDateString()}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                                                                {record.shiftId?.shiftNumber ? `Shift #${record.shiftId.shiftNumber}` : '-'}
+                                                            </td>
+                                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                                <Badge className={getStatusBadgeClass(record.status)}>
+                                                                    {record.status}
+                                                                </Badge>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-sm text-slate-600">
+                                                                {record.notes || '-'}
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                ) : (
+                                                    <tr>
+                                                        <td colSpan="4" className="px-6 py-12 text-center text-slate-500">
+                                                            No attendance records found for this employee
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                )
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+                                    <User className="w-12 h-12 mb-4 text-slate-300" />
+                                    <p>Select an employee to view attendance history</p>
+                                </div>
+                            )}
+                        </div>
+                    ) : activeTab === "summary" ? (
+                        <div className="space-y-4">
+                            {/* Month/Year Filters */}
+                            <div className="flex gap-4">
+                                <div className="w-48">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Month</label>
+                                    <select
+                                        value={selectedMonth}
+                                        onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                    >
+                                        {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
+                                            <option key={month} value={month}>
+                                                {new Date(2000, month - 1).toLocaleString('default', { month: 'long' })}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div className="w-32">
+                                    <label className="block text-sm font-medium text-slate-700 mb-1">Year</label>
+                                    <select
+                                        value={selectedYear}
+                                        onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                    >
+                                        {Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i).map(year => (
+                                            <option key={year} value={year}>{year}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+
+                            {/* Monthly Summary Table */}
+                            {summaryLoading ? (
+                                <div className="flex justify-center items-center py-12">
+                                    <LoadingSpinner />
+                                </div>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full">
+                                        <thead className="bg-slate-50 border-b border-slate-200">
+                                            <tr>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Employee</th>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Position</th>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Total Days</th>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Present</th>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Absent</th>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Leave</th>
+                                                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Attendance %</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="bg-white divide-y divide-slate-200">
+                                            {monthlySummary.length > 0 ? (
+                                                monthlySummary.map((emp, index) => (
+                                                    <tr key={index} className="hover:bg-slate-50">
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
+                                                            {emp.name}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700 capitalize">
+                                                            {emp.position?.replace('_', ' ')}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-700">
+                                                            {emp.totalDays}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-emerald-600 font-medium">
+                                                            {emp.presentDays}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600 font-medium">
+                                                            {emp.absentDays}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600 font-medium">
+                                                            {emp.leaveDays}
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="flex-1 bg-slate-200 rounded-full h-2">
+                                                                    <div
+                                                                        className="bg-emerald-500 h-2 rounded-full"
+                                                                        style={{ width: emp.attendancePercentage }}
+                                                                    ></div>
+                                                                </div>
+                                                                <span className="text-sm font-medium text-slate-900">
+                                                                    {emp.attendancePercentage}
+                                                                </span>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan="7" className="px-6 py-12 text-center text-slate-500">
+                                                        No attendance data found for {new Date(selectedYear, selectedMonth - 1).toLocaleString('default', { month: 'long', year: 'numeric' })}
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center py-12 text-slate-500">
                             <Calendar className="w-12 h-12 mb-4 text-slate-300" />
-                            <p>Select "Today's Attendance" to view current status</p>
-                            <p className="text-sm mt-2">History and Summary views coming soon</p>
+                            <p>Select a tab to view data</p>
                         </div>
-                    )}
-                </Card>
+                    )}               </Card>
             </div>
+
             {/* Mark Attendance Modal */}
             {showMarkModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -453,6 +730,72 @@ export default function Attendance() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && deleteTarget && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-red-50">
+                            <h3 className="text-lg font-semibold text-red-900">Delete Attendance Record</h3>
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setDeleteTarget(null);
+                                }}
+                                className="p-2 hover:bg-red-100 rounded-full transition-colors text-red-700"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-4">
+                            {/* Warning Message */}
+                            <div className="flex items-start gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                <UserX className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1">
+                                    <h4 className="text-sm font-semibold text-red-900">Warning</h4>
+                                    <p className="text-sm text-red-700 mt-1">
+                                        This action cannot be undone. The attendance record will be permanently deleted.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Record Details */}
+                            <div className="space-y-2 p-4 bg-slate-50 rounded-lg">
+                                <h4 className="text-sm font-medium text-slate-900">Record Details:</h4>
+                                <div className="text-sm text-slate-700 space-y-1">
+                                    <p><span className="font-medium">Employee:</span> {deleteTarget.name}</p>
+                                    <p><span className="font-medium">Position:</span> {deleteTarget.position?.replace('_', ' ')}</p>
+                                    <p><span className="font-medium">Status:</span> <Badge className={getStatusBadgeClass(deleteTarget.status)}>{deleteTarget.status}</Badge></p>
+                                    {deleteTarget.markedAt && (
+                                        <p><span className="font-medium">Marked At:</span> {new Date(deleteTarget.markedAt).toLocaleString()}</p>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowDeleteModal(false);
+                                        setDeleteTarget(null);
+                                    }}
+                                    className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-slate-50 font-medium transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleConfirmDelete}
+                                    className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors"
+                                >
+                                    Delete Record
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

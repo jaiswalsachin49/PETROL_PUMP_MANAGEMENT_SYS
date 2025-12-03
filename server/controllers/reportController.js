@@ -13,18 +13,15 @@ const mongoose = require('mongoose');
 // @route   GET /api/reports/dashboard
 // @access  Private
 const getDashboardSummary = async (req, res) => {
-    console.log('\n🔥 getDashboardSummary CALLED at', new Date().toISOString());
     try {
         const lastTwoShift = await Shift.find({ status: 'closed' })
             .sort({ shiftNumber: -1 })
             .limit(2)
             .lean();
 
-        console.log('📊 Found', lastTwoShift.length, 'closed shifts');
 
         // If no shifts exist, still show TODAY's sales
         if (!lastTwoShift || lastTwoShift.length === 0) {
-            console.log('⚠️ NO CLOSED SHIFTS - But will show today\'s sales');
 
             // Get today in IST timezone (UTC+5:30)
             const now = new Date();
@@ -39,7 +36,6 @@ const getDashboardSummary = async (req, res) => {
             tomorrow.setDate(tomorrow.getDate() + 1);
             const tomorrowUTC = new Date(tomorrow.getTime() - istOffset);
 
-            console.log('Today IST:', today, '→ UTC:', todayUTC);
 
             // Get TODAY's sales
             const todaySalesData = await Sale.aggregate([
@@ -67,7 +63,6 @@ const getDashboardSummary = async (req, res) => {
                 totalTransactions: 0
             };
 
-            console.log('📈 Today\'s sales:', todayStats);
 
             const tanks = await Tank.find().lean();
             const tankLevels = tanks.map(tank => ({
@@ -232,31 +227,40 @@ const getDashboardSummary = async (req, res) => {
             status: 'Active'
         });
 
-        // Get today in IST timezone (UTC+5:30)
+        // Get today's date range in IST (UTC+5:30)
+        const IST_OFFSET = 5.5 * 60 * 60 * 1000;
         const now = new Date();
-        const istOffset = 5.5 * 60 * 60 * 1000; // IST is UTC+5:30
-        const istNow = new Date(now.getTime() + istOffset);
 
-        const today = new Date(istNow);
-        today.setHours(0, 0, 0, 0);
-        const todayUTC = new Date(today.getTime() - istOffset);
+        // Get current time in IST
+        const nowInIST = new Date(now.getTime() + IST_OFFSET);
 
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowUTC = new Date(tomorrow.getTime() - istOffset);
+        // Set to midnight today in IST (using UTC methods since we already added offset)
+        nowInIST.setUTCHours(0, 0, 0, 0);
 
-        console.log('===== DASHBOARD DEBUG =====');
-        console.log('IST Now:', istNow.toISOString());
-        console.log('Today IST:', today, '→ UTC:', todayUTC);
-        console.log('Tomorrow IST:', tomorrow, '→ UTC:', tomorrowUTC);
+        // Convert back to UTC for database query
+        const todayStartUTC = new Date(nowInIST.getTime() - IST_OFFSET);
 
-        // Try both date and createdAt fields for maximum compatibility
+        // Get tomorrow midnight
+        const tomorrowInIST = new Date(nowInIST);
+        tomorrowInIST.setUTCDate(tomorrowInIST.getUTCDate() + 1);
+        const tomorrowStartUTC = new Date(tomorrowInIST.getTime() - IST_OFFSET);
+
+        // Find all shifts that should count towards today's sales:
+        // 1. Any currently active shift (regardless of start time, to handle timezone issues)
+        // 2. ALL closed shifts (we'll filter sales by date instead)
+        const activeShiftData = await Shift.findOne({ status: 'active' }).select('_id shiftNumber').lean();
+        const allClosedShifts = await Shift.find({ status: 'closed' }).select('_id shiftNumber').lean();
+
+
+        // Get ALL sales from today (by createdAt timestamp) plus sales from active shift
         const todaySalesData = await Sale.aggregate([
             {
                 $match: {
                     $or: [
-                        { date: { $gte: todayUTC, $lt: tomorrowUTC } },
-                        { createdAt: { $gte: todayUTC, $lt: tomorrowUTC } }
+                        // Sales created today (in UTC range corresponding to IST day)
+                        { createdAt: { $gte: todayStartUTC, $lt: tomorrowStartUTC } },
+                        // OR sales from active shift (to catch ongoing sales)
+                        ...(activeShiftData ? [{ shiftId: activeShiftData._id }] : [])
                     ]
                 }
             },
@@ -270,18 +274,6 @@ const getDashboardSummary = async (req, res) => {
             }
         ]);
 
-        console.log('Today sales aggregation result:', todaySalesData);
-
-        // Check counts separately
-        const countByDate = await Sale.countDocuments({ date: { $gte: todayUTC, $lt: tomorrowUTC } });
-        const countByCreatedAt = await Sale.countDocuments({ createdAt: { $gte: todayUTC, $lt: tomorrowUTC } });
-        console.log('Sales count by date field:', countByDate);
-        console.log('Sales count by createdAt field:', countByCreatedAt);
-
-        // Check sample of ALL sales with dates
-        const sampleSales = await Sale.find().sort({ createdAt: -1 }).limit(5).select('date totalAmount quantity createdAt saleId');
-        console.log('Sample recent sales:', JSON.stringify(sampleSales, null, 2));
-        console.log('===== END DEBUG =====');
 
         const todayStats = todaySalesData[0] || {
             totalSalesAmount: 0,
@@ -295,8 +287,8 @@ const getDashboardSummary = async (req, res) => {
             {
                 $match: {
                     $or: [
-                        { date: { $gte: todayUTC, $lt: tomorrowUTC } },
-                        { createdAt: { $gte: todayUTC, $lt: tomorrowUTC } }
+                        { createdAt: { $gte: todayStartUTC, $lt: tomorrowStartUTC } },
+                        ...(activeShiftData ? [{ shiftId: activeShiftData._id }] : [])
                     ]
                 }
             },
