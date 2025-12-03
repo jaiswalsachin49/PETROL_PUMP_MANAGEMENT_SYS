@@ -7,6 +7,7 @@ const {
     getWeeklyPerformance,
     getTankLevels,
     getRecentActivity,
+    getMonthlyRevenue,
     getTopPerformers,
     getShiftDetail,
     getCreditCustomers,
@@ -27,7 +28,7 @@ router.get('/dashboard', protect, getDashboardSummary);
 router.get('/shift-sales-trend', protect, getShiftSalesTrends);
 router.get('/fuel-distribution', protect, getFuelDistribution);
 router.get('/weekly-performance', protect, getWeeklyPerformance);
-
+router.get('/monthly-revenue', protect, getMonthlyRevenue);
 router.get('/tank-levels', protect, getTankLevels);
 router.get('/recent-activity', protect, getRecentActivity);
 

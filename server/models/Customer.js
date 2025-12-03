@@ -26,6 +26,7 @@ const customerSchema = new mongoose.Schema({
         unique: true,
         trim: true,
         lowercase: true,
+        sparse: true, // Allow multiple null/undefined values
     },
     phone: {
         type: String,

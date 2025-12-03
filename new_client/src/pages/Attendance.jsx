@@ -120,6 +120,30 @@ export default function Attendance() {
         }
     };
 
+    const handleQuickMark = async (employeeId, status) => {
+        if (!activeShift) {
+            toast.error("No active shift found!");
+            return;
+        }
+
+        try {
+            await attendanceService.markAttendance({
+                employeeId,
+                status,
+                shiftId: activeShift._id,
+                notes: `Quick marked as ${status}`
+            });
+
+            // Optimistic update or refresh
+            fetchShiftAttendance(activeShift._id);
+            fetchInitialData(); // Update stats
+            toast.success(`Marked as ${status}`);
+        } catch (error) {
+            console.error("Error marking attendance:", error);
+            toast.error(error.response?.data?.message || "Error marking attendance");
+        }
+    };
+
     const fetchShiftAttendance = async (shiftId) => {
         try {
             setLoading(true);
@@ -313,9 +337,26 @@ export default function Attendance() {
                                                     -
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <Badge className={getStatusBadgeClass(record.status)}>
-                                                        {record.status === 'not_marked' ? 'Not Marked' : record.status}
-                                                    </Badge>
+                                                    {record.status === 'not_marked' ? (
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => handleQuickMark(record._id, 'present')}
+                                                                className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-md text-xs font-medium hover:bg-emerald-200 transition-colors"
+                                                            >
+                                                                Present
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleQuickMark(record._id, 'absent')}
+                                                                className="px-3 py-1 bg-red-100 text-red-700 rounded-md text-xs font-medium hover:bg-red-200 transition-colors"
+                                                            >
+                                                                Absent
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <Badge className={getStatusBadgeClass(record.status)}>
+                                                            {record.status}
+                                                        </Badge>
+                                                    )}
                                                 </td>
                                             </tr>
                                         ))

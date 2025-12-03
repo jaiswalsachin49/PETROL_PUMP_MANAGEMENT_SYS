@@ -14,7 +14,6 @@ import Shifts from './pages/Shifts';
 import Reports from './pages/AnalyticsReports';
 import Inventory from './pages/Inventory';
 import Attendance from './pages/Attendance';
-import Tank from './pages/Tanks';
 import Suppliers from './pages/Suppliers';
 import Purchases from './pages/Purchases';
 import Transactions from './pages/Transactions';
@@ -59,7 +58,6 @@ function App() {
                   <Route path="/reports" element={<Reports />} />
                   <Route path='/inventory' element={<Inventory />} />
                   <Route path='/attendance' element={<Attendance />} />
-                  <Route path='/tanks' element={<Tank />} />
                   <Route path='/suppliers' element={<Suppliers />} />
                   <Route path='/purchases' element={<Purchases />} />
                   <Route path='/transactions' element={<Transactions />} />

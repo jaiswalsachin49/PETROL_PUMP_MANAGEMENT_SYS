@@ -37,6 +37,7 @@ export default function Pumps() {
     const [selectedNozzle, setSelectedNozzle] = useState(null);
     const [expandedPumps, setExpandedPumps] = useState(new Set());
 
+
     const [createForm, setCreateForm] = useState({
         pumpNumber: "",
         tankId: "",
@@ -63,6 +64,15 @@ export default function Pumps() {
     useEffect(() => {
         fetchInitialData();
     }, []);
+
+    const fetchPumps = async () => {
+        try {
+            const res = await pumpService.getAll();
+            setPumps(res.data.data || []);
+        } catch (error) {
+            console.error("Error fetching pumps:", error);
+        }
+    };
 
     const fetchInitialData = async () => {
         try {
@@ -119,7 +129,7 @@ export default function Pumps() {
         try {
             if (selectedNozzle) {
                 // Update existing nozzle
-                await pumpService.updateNozzleReading(selectedPump._id, selectedNozzle.nozzleId, {
+                await pumpService.updateNozzleReading(selectedPump._id, selectedNozzle._id, {
                     currentReading: parseFloat(nozzleForm.currentReading)
                 });
                 toast.success("Nozzle updated successfully!");
@@ -153,14 +163,8 @@ export default function Pumps() {
     const handleAssignEmployee = async (e) => {
         e.preventDefault();
         try {
-            const endpoint = `/pumps/${selectedPump._id}/nozzles/${selectedNozzle._id}/assign`;
-            await fetch(`http://localhost:5000/api/pumps/${selectedPump._id}/nozzles/${selectedNozzle.nozzleId}/assign`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({ employeeId: assignForm.assignedEmployee })
+            await pumpService.assignNozzle(selectedPump._id, selectedNozzle._id, {
+                assignedEmployee: assignForm.assignedEmployee
             });
 
             toast.success("Employee assigned successfully!");

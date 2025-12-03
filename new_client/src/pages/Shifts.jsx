@@ -58,6 +58,13 @@ export default function Shifts() {
         fetchTanks();
         fetchPumps();
         fetchEmployees();
+
+        // Poll for active shift updates every 30 seconds
+        const interval = setInterval(() => {
+            fetchShifts();
+        }, 30000);
+
+        return () => clearInterval(interval);
     }, []);
 
     const fetchShifts = async () => {
@@ -148,26 +155,60 @@ export default function Shifts() {
             const summaryRes = await shiftService.getShiftSummary(shift._id);
             const summary = summaryRes.data.data;
 
-            const tankReadings = tanks.map(tank => ({
-                tankId: tank._id,
-                tankName: tank.name,
-                fuelType: tank.fuelType,
-                openingReading: tank.currentLevel || 0,
-                closingReading: tank.currentLevel || 0
-            }));
+            let tankReadings = [];
+            if (summary.tankReadings && summary.tankReadings.length > 0) {
+                // Use stored readings with expected values
+                tankReadings = summary.tankReadings.map(reading => {
+                    const tank = tanks.find(t => t._id === reading.tankId);
+                    return {
+                        tankId: reading.tankId,
+                        tankName: tank?.name || 'Unknown Tank',
+                        fuelType: tank?.fuelType || 'Fuel',
+                        openingReading: reading.openingReading,
+                        closingReading: reading.closingReading || reading.openingReading // Use calculated closing or fallback
+                    };
+                });
+            } else {
+                // Fallback to current readings
+                tankReadings = tanks.map(tank => ({
+                    tankId: tank._id,
+                    tankName: tank.name,
+                    fuelType: tank.fuelType,
+                    openingReading: tank.currentLevel || 0,
+                    closingReading: tank.currentLevel || 0
+                }));
+            }
 
-            // Initialize pump readings for all pumps
-            const pumpReadings = pumps.flatMap(pump =>
-                pump.nozzles?.map(nozzle => ({
-                    pumpId: pump._id,
-                    pumpName: pump.pumpNumber,
-                    nozzleId: nozzle._id,
-                    nozzleName: nozzle.nozzleId,
-                    fuelType: nozzle.fuelType || nozzle.fueltype,
-                    openingReading: nozzle.currentReading || 0,
-                    closingReading: nozzle.currentReading || 0
-                })) || []
-            );
+            let pumpReadings = [];
+            if (summary.pumpReadings && summary.pumpReadings.length > 0) {
+                // Use stored readings with expected values
+                pumpReadings = summary.pumpReadings.map(reading => {
+                    const pump = pumps.find(p => p._id === reading.pumpId);
+                    const nozzle = pump?.nozzles?.find(n => n._id === reading.nozzleId);
+                    return {
+                        pumpId: reading.pumpId,
+                        pumpName: pump?.pumpNumber || 'Unknown Pump',
+                        nozzleId: reading.nozzleId,
+                        nozzleName: nozzle?.nozzleId || 'Unknown Nozzle',
+                        fuelType: nozzle?.fuelType || nozzle?.fueltype || 'Fuel',
+                        openingReading: reading.openingReading,
+                        closingReading: reading.closingReading || reading.openingReading // Use calculated closing or fallback
+                    };
+                });
+            } else {
+                // Fallback to current readings
+                pumpReadings = pumps.flatMap(pump =>
+                    pump.nozzles?.map(nozzle => ({
+                        pumpId: pump._id,
+                        pumpName: pump.pumpNumber,
+                        nozzleId: nozzle._id,
+                        nozzleName: nozzle.nozzleId,
+                        fuelType: nozzle.fuelType || nozzle.fueltype,
+                        openingReading: nozzle.currentReading || 0,
+                        closingReading: nozzle.currentReading || 0
+                    })) || []
+                );
+            }
 
             setCloseForm({
                 closingCash: summary.suggestedClosingCash || 0, // Auto-populate from summary
@@ -302,7 +343,7 @@ export default function Shifts() {
                         </div>
                         <Card className="p-6 bg-orange-50/50 border-orange-100">
                             <div className="mb-4">
-                                <Badge className="bg-emerald-500 text-white border-0 font-medium">Live</Badge>
+                                <Badge className="bg-emerald-500 text-white border-0 font-medium" variant="success">Live</Badge>
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-6 gap-6 mb-6">
                                 <div>
@@ -342,7 +383,7 @@ export default function Shifts() {
                                     </div>
                                     <div>
                                         <p className="text-xs text-slate-500">Transactions</p>
-                                        <p className="text-sm font-bold text-slate-900">0</p>
+                                        <p className="text-sm font-bold text-slate-900">{activeShift.totalTransactions || 0}</p>
                                     </div>
                                 </div>
                             </div>

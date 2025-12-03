@@ -1,6 +1,7 @@
 const Pump = require('../models/Pump');
 const Sale = require('../models/Sale')
 const Employee = require('../models/Employee');
+const Shift = require('../models/Shift');
 
 // @desc    Get all pumps
 // @route   GET /api/pumps
@@ -190,6 +191,30 @@ const assignNozzleEmployee = async (req, res) => {
 
         nozzle.assignedEmployee = assignedEmployee || null;
         await pump.save();
+
+        // Auto-mark attendance if assigning an employee
+        if (assignedEmployee) {
+            const activeShift = await Shift.findOne({ status: 'active' });
+            if (activeShift) {
+                const employee = await Employee.findById(assignedEmployee);
+                if (employee) {
+                    const existingAttendance = employee.attendance.find(
+                        att => att.shiftId && att.shiftId.toString() === activeShift._id.toString()
+                    );
+
+                    if (!existingAttendance) {
+                        employee.attendance.push({
+                            date: new Date(),
+                            shiftId: activeShift._id,
+                            status: 'present',
+                            notes: 'Auto-marked upon nozzle assignment'
+                        });
+                        await employee.save();
+                    }
+                }
+            }
+        }
+
         res.json({ success: true, data: pump });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });

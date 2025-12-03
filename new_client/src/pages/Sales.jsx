@@ -62,7 +62,6 @@ export default function Sales() {
         fetchCustomers();
         fetchEmployees();
         fetchActiveShift();
-        fetchActiveShift();
         fetchFuelPrices();
     }, []);
 

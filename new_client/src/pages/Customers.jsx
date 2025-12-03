@@ -65,7 +65,13 @@ export default function Customers() {
     const handleCreateSubmit = async (e) => {
         e.preventDefault();
         try {
-            await customerService.create(formData);
+            const payload = {
+                ...formData,
+                email: formData.email || undefined, // Send undefined if empty to avoid unique constraint error
+                creditLimit: Number(formData.creditLimit) || 0,
+                gstNumber: formData.gstNumber || undefined
+            };
+            await customerService.create(payload);
             setShowCreateModal(false);
             fetchCustomers();
             setFormData({

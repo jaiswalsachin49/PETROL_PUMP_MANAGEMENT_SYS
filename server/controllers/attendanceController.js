@@ -4,9 +4,20 @@ const Shift = require('../models/Shift');
 // @desc Mark employee attendance for a shift
 // @route POST /api/attendance
 // @access Private (Manager/Admin)
+// @desc Mark employee attendance for a shift
+// @route POST /api/attendance
+// @access Private (Manager/Admin)
 const markAttendance = async (req, res) => {
+    console.log('📝 markAttendance called with:', req.body);
     try {
         const { employeeId, shiftId, status, notes } = req.body;
+
+        if (!employeeId || !shiftId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Employee ID and Shift ID are required'
+            });
+        }
 
         const employee = await Employee.findById(employeeId);
         if (!employee) {
@@ -16,7 +27,6 @@ const markAttendance = async (req, res) => {
             });
         }
 
-
         const shift = await Shift.findById(shiftId);
         if (!shift) {
             return res.status(404).json({
@@ -25,19 +35,30 @@ const markAttendance = async (req, res) => {
             });
         }
 
+        // Check if attendance already exists for this shift
+        // Safety check: ensure att.shiftId exists before toString()
         const existingAttendance = employee.attendance.find(
             att => att.shiftId && att.shiftId.toString() === shiftId
         );
 
         if (existingAttendance) {
-            return res.status(400).json({
-                success: false,
-                message: 'Attendance already marked for this shift'
+            // If already marked, we can update it instead of erroring out (better UX for quick toggle)
+            // Or return error if strict. Let's update it if it exists to support "toggle" behavior or correction
+            existingAttendance.status = status || 'present';
+            existingAttendance.notes = notes || existingAttendance.notes;
+            existingAttendance.date = new Date(); // Update timestamp
+
+            await employee.save();
+
+            return res.status(200).json({
+                success: true,
+                data: existingAttendance,
+                message: 'Attendance updated successfully'
             });
         }
 
         employee.attendance.push({
-            date: shift.startTime,
+            date: new Date(),
             shiftId: shiftId,
             status: status || 'present',
             notes: notes || ''
@@ -51,6 +72,7 @@ const markAttendance = async (req, res) => {
             message: 'Attendance marked successfully'
         });
     } catch (error) {
+        console.error('❌ Error in markAttendance:', error);
         res.status(500).json({
             success: false,
             message: error.message
@@ -141,10 +163,10 @@ const getShiftAttendance = async (req, res) => {
             });
         }
 
-        const assignedEmployeeIds = shift.assignedEmployees.map(emp => emp._id);
-
+        // Fetch ALL active employees instead of just assigned ones
+        // This ensures we see attendance even if they weren't explicitly assigned to the shift
         const employees = await Employee.find({
-            _id: { $in: assignedEmployeeIds }
+            isActive: true
         }).select('employeeId name position attendance');
 
         const attendanceRecords = employees.map(emp => {
@@ -153,6 +175,7 @@ const getShiftAttendance = async (req, res) => {
             );
 
             return {
+                _id: emp._id,
                 employeeId: emp.employeeId,
                 name: emp.name,
                 position: emp.position,
@@ -163,7 +186,7 @@ const getShiftAttendance = async (req, res) => {
         });
 
         const summary = {
-            totalAssigned: assignedEmployeeIds.length,
+            totalEmployees: employees.length,
             present: attendanceRecords.filter(r => r.status === 'present').length,
             absent: attendanceRecords.filter(r => r.status === 'absent').length,
             leave: attendanceRecords.filter(r => r.status === 'leave').length,

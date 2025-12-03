@@ -1,14 +1,48 @@
 const Shift = require('../models/Shift')
 const Tank = require('../models/Tank')
 const Sale = require('../models/Sale')
+const Pump = require('../models/Pump')
 
 
 // @desc    Get all shifts
 // route    GET /api/shifts
 // access   Private
+// @desc    Get all shifts
+// route    GET /api/shifts
+// access   Private
 const getShifts = async (req, res) => {
     try {
-        const shifts = await Shift.find().populate('assignedEmployees').populate('supervisorId')
+        const shifts = await Shift.find().populate('assignedEmployees').populate('supervisorId').sort({ createdAt: -1 });
+
+        // Calculate real-time sales for the active shift
+        const activeShiftIndex = shifts.findIndex(s => s.status === 'active');
+        if (activeShiftIndex !== -1) {
+            const activeShift = shifts[activeShiftIndex];
+
+            const salesAggregation = await Sale.aggregate([
+                { $match: { shiftId: activeShift._id } },
+                {
+                    $group: {
+                        _id: null,
+                        totalSales: { $sum: '$totalAmount' },
+                        totalTransactions: { $sum: 1 }
+                    }
+                }
+            ]);
+
+            if (salesAggregation.length > 0) {
+                // We need to convert the mongoose document to a plain object to modify it
+                // or use .lean() in the query, but here we can just overwrite the property in memory if we are careful
+                // Mongoose documents are immutable directly sometimes, so let's convert to object
+                const activeShiftObj = activeShift.toObject();
+                activeShiftObj.totalSales = salesAggregation[0].totalSales;
+                activeShiftObj.totalTransactions = salesAggregation[0].totalTransactions;
+
+                // Replace in the array
+                shifts[activeShiftIndex] = activeShiftObj;
+            }
+        }
+
         res.json({
             success: true,
             count: shifts.length,
@@ -78,7 +112,35 @@ const createShift = async (req, res) => {
             });
         }
 
-        const shift = new Shift(req.body);
+        // 3. Get current tank and pump readings for opening values
+        const tanks = await Tank.find();
+        const pumps = await Pump.find();
+
+        const tankReadings = tanks.map(tank => ({
+            tankId: tank._id,
+            openingReading: tank.currentLevel || 0,
+            closingReading: 0 // Will be updated on close
+        }));
+
+        const pumpReadings = [];
+        pumps.forEach(pump => {
+            if (pump.nozzles && pump.nozzles.length > 0) {
+                pump.nozzles.forEach(nozzle => {
+                    pumpReadings.push({
+                        pumpId: pump._id,
+                        nozzleId: nozzle._id, // Ensure this matches your nozzle structure
+                        openingReading: nozzle.currentReading || 0,
+                        closingReading: 0
+                    });
+                });
+            }
+        });
+
+        const shift = new Shift({
+            ...req.body,
+            tankReadings,
+            pumpReadings
+        });
         await shift.save();
         res.status(201).json({
             success: true,
@@ -263,6 +325,18 @@ const closeShift = async (req, res) => {
         // 9. Add pump readings and tank readings from request
         if (req.body.pumpReadings) {
             shift.pumpReadings = req.body.pumpReadings;
+
+            // CRITICAL: Update Pump Nozzle readings for next shift
+            for (const reading of req.body.pumpReadings) {
+                await Pump.findOneAndUpdate(
+                    { "_id": reading.pumpId, "nozzles._id": reading.nozzleId },
+                    {
+                        $set: {
+                            "nozzles.$.currentReading": reading.closingReading
+                        }
+                    }
+                );
+            }
         }
 
         if (req.body.tankReadings) {
@@ -415,6 +489,74 @@ const getShiftSummary = async (req, res) => {
         // 3. Calculate expected closing cash
         const expectedClosingCash = shift.openingCash + salesData.cashCollected;
 
+        // 3.1 Calculate expected pump readings based on sales
+        // We need to aggregate sales by nozzleId to get volume sold per nozzle
+        const nozzleSales = await Sale.aggregate([
+            { $match: { shiftId: shift._id } },
+            {
+                $group: {
+                    _id: "$nozzleId",
+                    totalVolume: { $sum: "$quantity" }
+                }
+            }
+        ]);
+
+        const nozzleVolumeMap = {};
+        nozzleSales.forEach(item => {
+            if (item._id) nozzleVolumeMap[item._id.toString()] = item.totalVolume;
+        });
+
+        const pumpReadingsWithExpected = shift.pumpReadings.map(reading => {
+            const volumeSold = nozzleVolumeMap[reading.nozzleId.toString()] || 0;
+            return {
+                ...reading.toObject(),
+                expectedClosingReading: reading.openingReading + volumeSold,
+                closingReading: reading.openingReading + volumeSold // Default to expected
+            };
+        });
+
+        // 3.2 Calculate expected tank readings
+        // Aggregate sales by fuelType (since we don't always track tankId on sale directly, but we can infer from pump->tank connection if needed, 
+        // but simpler is to just subtract total fuel sold from tank if we assume 1 tank per fuel type or distribute. 
+        // Better: If we have tankId on sales, use it. If not, we might have to skip or estimate.)
+        // The Sale model has 'pumpId', and Pump model has 'tankId'. We can link them.
+
+        // Let's try to get volume per tank via Pump
+        // First, get all pumps to map pumpId -> tankId
+        const pumps = await Pump.find();
+        const pumpToTankMap = {};
+        pumps.forEach(p => pumpToTankMap[p._id.toString()] = p.tankId.toString());
+
+        // Now aggregate sales by pumpId
+        const pumpSales = await Sale.aggregate([
+            { $match: { shiftId: shift._id } },
+            {
+                $group: {
+                    _id: "$pumpId",
+                    totalVolume: { $sum: "$quantity" }
+                }
+            }
+        ]);
+
+        const tankVolumeSold = {};
+        pumpSales.forEach(item => {
+            if (item._id) {
+                const tankId = pumpToTankMap[item._id.toString()];
+                if (tankId) {
+                    tankVolumeSold[tankId] = (tankVolumeSold[tankId] || 0) + item.totalVolume;
+                }
+            }
+        });
+
+        const tankReadingsWithExpected = shift.tankReadings.map(reading => {
+            const volumeSold = tankVolumeSold[reading.tankId.toString()] || 0;
+            return {
+                ...reading.toObject(),
+                expectedClosingReading: reading.openingReading - volumeSold,
+                closingReading: reading.openingReading - volumeSold // Default to expected
+            };
+        });
+
         // 4. Return summary
         res.json({
             success: true,
@@ -424,7 +566,11 @@ const getShiftSummary = async (req, res) => {
                 openingCash: shift.openingCash,
                 salesSummary: salesData,
                 expectedClosingCash: expectedClosingCash,
-                suggestedClosingCash: expectedClosingCash // Suggest this value
+                suggestedClosingCash: expectedClosingCash, // Suggest this value
+
+                // Provide opening readings (either from this shift or previous shift)
+                tankReadings: tankReadingsWithExpected.length > 0 ? tankReadingsWithExpected : [],
+                pumpReadings: pumpReadingsWithExpected.length > 0 ? pumpReadingsWithExpected : []
             }
         });
 

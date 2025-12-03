@@ -126,6 +126,10 @@ const getDashboardSummary = async (req, res) => {
 
             const totalStaff = await Employee.countDocuments({ isActive: true });
 
+            // Get active shift for real-time staff count
+            const activeShift = await Shift.findOne({ status: 'active' });
+            const activeStaffCount = activeShift ? activeShift.assignedEmployees?.length || 0 : 0;
+
             return res.status(200).json({
                 success: true,
                 data: {
@@ -136,9 +140,9 @@ const getDashboardSummary = async (req, res) => {
                         vehicleChange: '+0%',
                         fuelQuantity: todayStats.totalQuantitySold,
                         quantityChange: '+0%',
-                        activeStaff: `0 / ${totalStaff}`,
-                        staffUtilization: '0%',
-                        startTime: null,
+                        activeStaff: `${activeStaffCount} / ${totalStaff}`,
+                        staffUtilization: activeStaffCount > 0 ? Math.round((activeStaffCount / totalStaff) * 100) : 0,
+                        startTime: activeShift?.startTime || null,
                         endTime: null,
                         tankLevels: tankLevels,
                         todayPumpSales: todayPumpSales
@@ -208,8 +212,9 @@ const getDashboardSummary = async (req, res) => {
         const transactionChange = prevStats.totalTransactions === 0 ? 100 :
             (((lastStats.totalTransactions - prevStats.totalTransactions) / prevStats.totalTransactions) * 100).toFixed(2);
 
-        // GET ACTIVE STAFF COUNT
-        const activeStaff = lastShift.assignedEmployees?.length || 0;
+        // GET ACTIVE STAFF COUNT (Real-time from Active Shift, not last closed shift)
+        const activeShift = await Shift.findOne({ status: 'active' });
+        const activeStaffCount = activeShift ? activeShift.assignedEmployees?.length || 0 : 0;
         const totalStaff = await Employee.countDocuments({ isActive: true });
 
         // GET TANK LEVELS AT END OF SHIFT
@@ -312,7 +317,7 @@ const getDashboardSummary = async (req, res) => {
             };
         });
 
-        const response = pumps.map(pump => {
+        const todayPumpSales = pumps.map(pump => {
             const sales = salesMap[pump._id.toString()] || { amount: 0, quantity: 0 };
             return {
                 id: pump._id,
@@ -341,12 +346,12 @@ const getDashboardSummary = async (req, res) => {
                     vehicleChange: `${transactionChange >= 0 ? '+' : ''}${transactionChange}%`,
                     fuelQuantity: todayStats.totalQuantitySold, // Use today's real-time quantity
                     quantityChange: `${quantityChange >= 0 ? '+' : ''}${quantityChange}%`,
-                    activeStaff: `${activeStaff} / ${totalStaff}`,
-                    staffUtilization: totalStaff === 0 ? 100 : ((activeStaff / totalStaff) * 100).toFixed(2) + '%',
-                    startTime: lastShift.startTime,
-                    endTime: lastShift.endTime,
+                    activeStaff: `${activeStaffCount} / ${totalStaff}`,
+                    staffUtilization: activeStaffCount > 0 ? Math.round((activeStaffCount / totalStaff) * 100) : 0,
+                    startTime: activeShift?.startTime || lastShift.startTime,
+                    endTime: activeShift ? null : lastShift.endTime,
                     tankLevels: tankLevels,
-                    todayPumpSales: response
+                    todayPumpSales: todayPumpSales
                 },
                 previousShift: {
                     revenue: prevStats.totalSalesAmount,
@@ -374,7 +379,10 @@ const getDashboardSummary = async (req, res) => {
 // @access Private
 const getShiftSalesTrends = async (req, res) => {
     try {
-        const shifts = await Shift.find({ status: 'closed' })
+        // Fetch closed shifts AND the active shift
+        const shifts = await Shift.find({
+            status: { $in: ['closed', 'active'] }
+        })
             .sort({ startTime: -1 })
             .limit(10)
             .lean();
@@ -432,10 +440,18 @@ const getFuelDistribution = async (req, res) => {
         if (req.query.shiftId) {
             shiftId = req.query.shiftId;
         } else {
+            // Try to get latest closed shift
             const latestClosedShift = await Shift.findOne({ status: 'closed' })
                 .sort({ shiftNumber: -1 })
                 .select('_id');
-            shiftId = latestClosedShift?._id;
+
+            if (latestClosedShift) {
+                shiftId = latestClosedShift._id;
+            } else {
+                // If no closed shift, try to get active shift
+                const activeShift = await Shift.findOne({ status: 'active' }).select('_id');
+                shiftId = activeShift?._id;
+            }
         }
 
         if (!shiftId) {
@@ -545,6 +561,53 @@ const getWeeklyPerformance = async (req, res) => {
             success: false,
             message: error.message
         })
+    }
+}
+
+
+// @desc    Get monthly revenue (last 6 months)
+// @route   GET /api/reports/monthly-revenue
+// @access  Private
+const getMonthlyRevenue = async (req, res) => {
+    try {
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5);
+        sixMonthsAgo.setDate(1); // Start of the month
+
+        const salesData = await Sale.aggregate([
+            { $match: { createdAt: { $gte: sixMonthsAgo } } },
+            {
+                $group: {
+                    _id: {
+                        month: { $month: "$createdAt" },
+                        year: { $year: "$createdAt" }
+                    },
+                    revenue: { $sum: "$totalAmount" },
+                    quantity: { $sum: "$quantity" }
+                }
+            },
+            { $sort: { "_id.year": 1, "_id.month": 1 } }
+        ]);
+
+        // Format data for chart (fill missing months if needed, but simple map for now)
+        const formattedData = salesData.map(item => {
+            const date = new Date(item._id.year, item._id.month - 1);
+            return {
+                month: date.toLocaleDateString('en-IN', { month: 'short' }),
+                revenue: item.revenue,
+                quantity: item.quantity
+            };
+        });
+
+        res.json({
+            success: true,
+            data: formattedData
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 }
 
@@ -1028,28 +1091,64 @@ const getPumpPerformance = async (req, res) => {
 // @desc    Get comprehensive sales report
 // @route   GET /api/reports/sales-report
 // @access  Private
+// @desc    Get comprehensive sales report
+// @route   GET /api/reports/sales-report
+// @access  Private
 const getSalesReport = async (req, res) => {
     try {
         const { startDate, endDate, shift } = req.query;
 
-        const query = {};
+        const matchStage = {};
         if (startDate && endDate) {
-            query.date = {
+            matchStage.date = {
                 $gte: new Date(startDate),
                 $lte: new Date(endDate)
             };
         }
 
-        // Note: Shift filtering would require joining with Shift model if not stored directly
-        // Assuming we aggregate by date for now
+        const pipeline = [
+            { $match: matchStage },
+            {
+                $lookup: {
+                    from: 'shifts',
+                    localField: 'shiftId',
+                    foreignField: '_id',
+                    as: 'shiftDetails'
+                }
+            },
+            { $unwind: '$shiftDetails' },
+            {
+                $addFields: {
+                    shiftHour: { $hour: '$shiftDetails.startTime' }
+                }
+            },
+            {
+                $addFields: {
+                    shiftName: {
+                        $switch: {
+                            branches: [
+                                { case: { $and: [{ $gte: ['$shiftHour', 6] }, { $lt: ['$shiftHour', 14] }] }, then: 'Morning' },
+                                { case: { $and: [{ $gte: ['$shiftHour', 14] }, { $lt: ['$shiftHour', 22] }] }, then: 'Evening' }
+                            ],
+                            default: 'Night'
+                        }
+                    }
+                }
+            }
+        ];
 
-        const sales = await Sale.aggregate([
-            { $match: query },
+        if (shift && shift !== 'All Shifts') {
+            pipeline.push({
+                $match: { shiftName: shift }
+            });
+        }
+
+        pipeline.push(
             {
                 $group: {
                     _id: {
                         date: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
-                        // shift: "$shiftId" // grouping by shift if needed
+                        shift: "$shiftName"
                     },
                     petrolQty: {
                         $sum: {
@@ -1065,16 +1164,18 @@ const getSalesReport = async (req, res) => {
                         $sum: {
                             $cond: [{ $eq: ["$fuelType", "premium"] }, "$quantity", 0]
                         }
-                    }, // Assuming premium is a type or mapped
+                    },
                     totalRevenue: { $sum: "$totalAmount" }
                 }
             },
             { $sort: { "_id.date": -1 } }
-        ]);
+        );
+
+        const sales = await Sale.aggregate(pipeline);
 
         const formattedSales = sales.map(s => ({
             date: s._id.date,
-            shift: "All Shifts", // Placeholder until shift logic is refined
+            shift: s._id.shift,
             petrol: s.petrolQty,
             diesel: s.dieselQty,
             premium: s.premiumQty,
@@ -1135,9 +1236,6 @@ const getFinancialReport = async (req, res) => {
 // @access  Private
 const getFuelInventoryReport = async (req, res) => {
     try {
-        // This is a simplified logic. Real logic needs historical tracking.
-        // We will return current status and recent movements.
-
         const fuels = ['petrol', 'diesel', 'premium']; // premium might be mapped to power/xp
 
         const report = await Promise.all(fuels.map(async (fuel) => {
@@ -1161,9 +1259,18 @@ const getFuelInventoryReport = async (req, res) => {
             const sales = salesAgg[0]?.total || 0;
 
             // Get today's purchases
-            // Assuming Purchase model has items with itemName matching fuel
-            // This part might need adjustment based on Purchase model structure
-            const purchases = 0; // Placeholder
+            const purchasesAgg = await Purchase.aggregate([
+                { $match: { date: { $gte: today } } },
+                { $unwind: "$items" },
+                {
+                    $match: {
+                        "items.itemName": { $regex: new RegExp(fuel, 'i') }
+                    }
+                },
+                { $group: { _id: null, total: { $sum: "$items.quantity" } } }
+            ]);
+
+            const purchases = purchasesAgg[0]?.total || 0;
 
             const openingStock = currentStock + sales - purchases; // Back calculation
 
@@ -1602,6 +1709,7 @@ module.exports = {
     getWeeklyPerformance,
     getTankLevels,
     getRecentActivity,
+    getMonthlyRevenue,
     getTopPerformers,
     getShiftDetail,
     getCreditCustomers,

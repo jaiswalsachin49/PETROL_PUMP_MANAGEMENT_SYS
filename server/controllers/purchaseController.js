@@ -89,6 +89,37 @@ const createPurchase = async (req, res) => {
                             { $inc: { currentLevel: item.quantity } }
                         );
                     }
+                } else {
+                    // Handle Non-Fuel Items (Lubricants, etc.)
+                    // If itemId is missing, try to find by name or create new
+                    if (!item.itemId) {
+                        let inventoryItem = await Inventory.findOne({ itemName: { $regex: new RegExp(`^${item.itemName}$`, 'i') } });
+
+                        if (inventoryItem) {
+                            // Update existing
+                            inventoryItem.quantity += item.quantity;
+                            inventoryItem.lastRestockDate = new Date();
+                            // Update cost price if provided (weighted average could be better, but simple update for now)
+                            if (item.unitPrice) inventoryItem.costPrice = item.unitPrice;
+                            await inventoryItem.save();
+                        } else {
+                            // Create new inventory item
+                            const category = fuelType.includes('lubricant') ? 'lubricant' : 'consumable';
+                            const unit = fuelType.includes('lubricant') ? 'liter' : 'piece';
+
+                            await Inventory.create({
+                                itemName: item.itemName,
+                                category: category,
+                                quantity: item.quantity,
+                                unit: unit,
+                                costPrice: item.unitPrice || 0,
+                                sellingPrice: (item.unitPrice || 0) * 1.2, // Default 20% markup
+                                reorderLevel: 10, // Default
+                                lastRestockDate: new Date(),
+                                location: 'Store'
+                            });
+                        }
+                    }
                 }
             }
         }

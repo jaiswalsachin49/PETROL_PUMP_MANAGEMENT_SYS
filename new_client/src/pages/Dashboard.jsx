@@ -150,11 +150,11 @@ export default function Dashboard() {
             setTotalFuelStock(tanks.reduce((acc, curr) => acc + curr.current, 0));
             setTankLoading(false);
 
-            // Fetch weekly performance
+            // Fetch monthly revenue
             dashboardService
-                .getWeeklyPerformance()
+                .getMonthlyRevenue()
                 .then((res) => {
-                    setWeeklyPerformance(res.data.data);
+                    setWeeklyPerformance(res.data.data); // Reusing state variable for simplicity
                     setWeeklyLoading(false);
                 })
                 .catch((error) => console.log(error));
@@ -415,7 +415,7 @@ export default function Dashboard() {
                         <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={weeklyPerformance} barSize={40}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                                <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
+                                <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} dy={10} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 12 }} />
                                 <Tooltip
                                     cursor={{ fill: '#fff7ed' }}

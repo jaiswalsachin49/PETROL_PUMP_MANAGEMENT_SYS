@@ -10,4 +10,5 @@ export const pumpService = {
     getPumpsWithSales: () => API.get('/pumps/with-sales'),
     addNozzle: (pumpId, data) => API.post(`/pumps/${pumpId}/nozzles`, data),
     updateNozzleReading: (pumpId, nozzleId, data) => API.put(`/pumps/${pumpId}/nozzles/${nozzleId}`, data),
+    assignNozzle: (pumpId, nozzleId, data) => API.put(`/pumps/${pumpId}/nozzles/${nozzleId}/assign`, data),
 };
