@@ -296,6 +296,50 @@ export default function Attendance() {
             </div>
         );
     }
+    // console.log(monthlySummary)
+
+    const handleExportCSV = () =>{
+        if (!monthlySummary.length) {
+            toast.error("No data to export or Switch to monthly summary tab");
+            return;
+        }
+
+        const headers = [
+            "Employee Name",
+            "Present Days",
+            "Absent Days",
+            "Leave Days",
+            "Late Days",
+            "Not Marked Days"
+        ];
+
+        const csvRows = [];
+        csvRows.push(headers.join(','));
+
+        monthlySummary.forEach(summary => {
+            const row = [
+                summary.name || "N/A",
+                summary.position || "N/A",
+                summary.presentDays || 0,
+                summary.absentDays || 0,
+                summary.leaveDays || 0,
+                summary.totalDays || 0
+            ];
+            csvRows.push(row.map(field => `"${String(field).replace(/"/g, '""')}"`).join(','));
+        });
+
+        const csvString = csvRows.join('\n');
+        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `monthly_attendance_summary_${selectedMonth}_${selectedYear}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }
+
 
     return (
         <div className="flex-1 bg-slate-50 min-h-screen pb-10">
@@ -413,7 +457,7 @@ export default function Attendance() {
                                     className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
                                 />
                             )}
-                            <button className="flex items-center gap-2 px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+                            <button className="flex items-center gap-2 px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors" onClick={handleExportCSV}>
                                 <Download className="w-4 h-4" />
                                 Export
                             </button>

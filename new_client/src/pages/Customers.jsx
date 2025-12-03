@@ -175,6 +175,54 @@ export default function Customers() {
     const filteredCustomers = getFilteredCustomers();
     const overdueCount = customers.filter(c => c.outstandingBalance > 0).length;
 
+    const handleResetFilters = () => {
+
+    };
+
+    const handleExportCSV = () => {
+        if(!filteredCustomers.length){
+            toast.error("No customers to export");
+            return;
+        }
+
+        const headers = [
+            "Name",
+            "Phone",
+            "Email",
+            "SaleType",
+            "CreditLimit",
+            "CompanyName",
+            "GSTNumber",
+            "Address"
+        ];
+
+        const csvRows = [];
+        csvRows.push(headers.join(","));
+
+        filteredCustomers.forEach(customer => {
+            const row = [
+                customer.name,
+                customer.phone,
+                customer.email,
+                customer.saleType,
+                customer.creditLimit,
+                customer.companyName,
+                customer.gstNumber,
+                `${customer.address.street}, ${customer.address.city}, ${customer.address.state}, ${customer.address.zipCode}`
+            ];
+            csvRows.push(row.join(","));
+        });
+
+        const csvString = csvRows.join("\n");
+        const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "customers.csv");
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
     if (loading && !customers.length) {
         return (
             <div className="flex justify-center items-center min-h-screen bg-slate-50">
@@ -262,7 +310,7 @@ export default function Customers() {
                             <Filter className="w-4 h-4" />
                             Filter
                         </button>
-                        <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors">
+                        <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors" onClick={handleExportCSV}>
                             <Download className="w-4 h-4" />
                             Export
                         </button>

@@ -150,6 +150,48 @@ export default function Suppliers() {
         }
     };
 
+    const handleExportCSV =()=>{
+        if(!suppliers.length){
+            toast.error("No suppliers to export");
+            return;
+        }
+        const header = [ 
+            "Supplier ID",
+            "Name",
+            "Company Name",
+            "Email",
+            "Phone",
+            "Supplier Type",
+            "GST Number",
+            "Payment Terms",
+            "Is Active"
+        ]
+        const csvRows = []
+        csvRows.push(header.join(","))
+        suppliers.forEach(supplier => {
+            const row = [
+                supplier.supplierId,
+                supplier.name,
+                supplier.companyName,
+                supplier.email,
+                supplier.phone,
+                supplier.supplierType,
+                supplier.gstNumber,
+                supplier.paymentTerms,
+                supplier.isActive
+            ]
+            csvRows.push(row.join(","))
+        })
+        const csvContent = csvRows.join("\n")
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement("a")
+        link.href = url
+        link.download = "suppliers.csv"
+        link.click()
+        URL.revokeObjectURL(url)
+    }
+
     if (loading && !suppliers.length) {
         return (
             <div className="flex justify-center items-center min-h-screen bg-slate-50">
@@ -199,7 +241,7 @@ export default function Suppliers() {
                                 <Filter className="w-4 h-4" />
                                 Filter
                             </button>
-                            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors">
+                            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors" onClick={handleExportCSV}>
                                 <Download className="w-4 h-4" />
                                 Export
                             </button>

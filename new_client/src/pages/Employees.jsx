@@ -167,6 +167,47 @@ export default function Employees() {
         return pos.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
     };
 
+    const heandleExportCSV = () =>{
+        if(!employees.length){
+            toast.error("No data to export");
+            return;
+        }
+
+        const headers = [
+            "Employee ID",
+            "Name",
+            "Phone",
+            "Email",
+            "Position",
+            "Salary",
+            "Joining Date",
+            "Is Active"
+        ];
+        const csvRow = []
+        csvRow.push(headers.join(","));
+        employees.forEach(employee => {
+            const row = [
+                employee.employeeId,
+                employee.name,
+                employee.phone,
+                employee.email,
+                employee.position,
+                employee.salary,
+                employee.joiningDate,
+                employee.isActive
+            ];
+            csvRow.push(row.join(","));
+        });
+        const csvContent = csvRow.join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", "employees.csv");
+        link.click();
+        URL.revokeObjectURL(url);
+    }
+
     if (loading && !employees.length) {
         return (
             <div className="flex justify-center items-center min-h-screen bg-slate-50">
@@ -216,7 +257,7 @@ export default function Employees() {
                                 <Filter className="w-4 h-4" />
                                 Filter
                             </button>
-                            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors">
+                            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors" onClick={heandleExportCSV}>
                                 <Download className="w-4 h-4" />
                                 Export
                             </button>
