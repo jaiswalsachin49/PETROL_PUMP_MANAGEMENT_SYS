@@ -222,7 +222,7 @@ export default function AuthPage() {
             <p className="text-xs font-medium text-orange-900 mb-2">Demo Credentials:</p>
             <div className="space-y-1 text-xs text-orange-700">
               <p>
-                <strong>Admin:</strong> admin@gmail.com / Admin123
+                <strong>Manager:</strong> manager@testing.com / manager123
               </p>
             </div>
           </div>
