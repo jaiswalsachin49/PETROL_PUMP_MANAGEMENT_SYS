@@ -211,7 +211,7 @@ export default function Customers() {
                         <button
                             onClick={() => setActiveTab("all")}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "all"
-                                ? "bg-orange-100 text-orange-700"
+                                ? "bg-orange-100 text-orange-700 shadow-sm"
                                 : "text-slate-600 hover:bg-slate-100"
                                 }`}
                         >
@@ -220,7 +220,7 @@ export default function Customers() {
                         <button
                             onClick={() => setActiveTab("credit")}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "credit"
-                                ? "bg-orange-100 text-orange-700"
+                                ? "bg-orange-100 text-orange-700 shadow-sm"
                                 : "text-slate-600 hover:bg-slate-100"
                                 }`}
                         >
@@ -229,13 +229,13 @@ export default function Customers() {
                         <button
                             onClick={() => setActiveTab("overdue")}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "overdue"
-                                ? "bg-orange-100 text-orange-700"
+                                ? "bg-orange-100 text-orange-700 shadow-sm"
                                 : "text-slate-600 hover:bg-slate-100"
                                 }`}
                         >
                             Overdue Customers
                             {overdueCount > 0 && (
-                                <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full">
+                                <span className="bg-red-500 text-white text-xs px-1.5 mx-1 py-0.5 rounded-full">
                                     {overdueCount}
                                 </span>
                             )}

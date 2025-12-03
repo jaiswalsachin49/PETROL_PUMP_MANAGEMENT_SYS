@@ -162,7 +162,7 @@ export default function Shifts() {
             // Fetch shift summary to get auto-calculated closing cash
             const summaryRes = await shiftService.getShiftSummary(shift._id);
             const summary = summaryRes.data.data;
-
+            // console.log('Shift summary:', summary);
             let tankReadings = [];
             if (summary.tankReadings && summary.tankReadings.length > 0) {
                 // Use stored readings with expected values
@@ -186,6 +186,7 @@ export default function Shifts() {
                     closingReading: tank.currentLevel || 0
                 }));
             }
+
 
             let pumpReadings = [];
             if (summary.pumpReadings && summary.pumpReadings.length > 0) {

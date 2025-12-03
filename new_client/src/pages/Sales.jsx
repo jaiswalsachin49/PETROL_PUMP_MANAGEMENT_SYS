@@ -51,6 +51,7 @@ export default function Sales() {
     const [fuelFilter, setFuelFilter] = useState("all");
     const [paymentFilter, setPaymentFilter] = useState("all");
     const [dateFilter, setDateFilter] = useState("");
+    const [showFilters, setShowFilters] = useState(true);
 
     // Pagination
     const [currentPage, setCurrentPage] = useState(1);
@@ -201,6 +202,57 @@ export default function Sales() {
             fleet: "bg-slate-100 text-slate-700 border-0"
         };
         return classes[type] || classes.cash;
+    };
+
+    const handleResetFilters = () => {
+        setSearchTerm("");
+        setFuelFilter("all");
+        setPaymentFilter("all");
+        setDateFilter("");
+        setCurrentPage(1);
+        toast.success("Filters reset");
+    };
+
+    const handleExportCSV = () => {
+        if (filteredSales.length === 0) {
+            toast.warning("No sales data to export");
+            return;
+        }
+
+        // Prepare CSV data
+        const headers = ["Sale ID", "Date", "Time", "Fuel Type", "Quantity (L)", "Rate (₹/L)", "Total Amount (₹)", "Payment Method", "Customer", "Vehicle", "Employee"];
+        const csvData = filteredSales.map(sale => [
+            sale.saleId || 'N/A',
+            new Date(sale.date).toLocaleDateString(),
+            new Date(sale.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            sale.fuelType,
+            sale.quantity,
+            sale.pricePerLiter,
+            sale.totalAmount,
+            sale.saleType,
+            sale.customerId?.name || 'Walk-in',
+            sale.vehicleNumber || '-',
+            sale.employeeId?.name || '-'
+        ]);
+
+        // Convert to CSV string
+        const csvContent = [
+            headers.join(','),
+            ...csvData.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+
+        // Create and download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `sales_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        toast.success(`Exported ${filteredSales.length} sales records`);
     };
 
     const filteredSales = sales.filter(sale => {
@@ -411,12 +463,26 @@ export default function Sales() {
                                         className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
                                     >
                                         <option value="">Select Pump</option>
-                                        {pumps.map(pump => (
-                                            <option key={pump._id} value={pump._id}>
-                                                {pump.pumpNumber}
-                                            </option>
-                                        ))}
+                                        {pumps
+                                            .filter(pump => {
+                                                // Filter pumps that have at least one nozzle matching the selected fuel type
+                                                return pump.nozzles?.some(nozzle =>
+                                                    (nozzle.fuelType || nozzle.fueltype)?.toLowerCase() === saleForm.fuelType?.toLowerCase()
+                                                );
+                                            })
+                                            .map(pump => (
+                                                <option key={pump._id} value={pump._id}>
+                                                    {pump.pumpNumber}
+                                                </option>
+                                            ))}
                                     </select>
+                                    {saleForm.fuelType && pumps.filter(p => p.nozzles?.some(n =>
+                                        (n.fuelType || n.fueltype)?.toLowerCase() === saleForm.fuelType?.toLowerCase()
+                                    )).length === 0 && (
+                                            <p className="mt-1 text-xs text-orange-600">
+                                                No pumps available for {saleForm.fuelType}. Please check pump configuration.
+                                            </p>
+                                        )}
                                 </div>
 
                                 {/* Nozzle */}
@@ -442,11 +508,15 @@ export default function Sales() {
                                             className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
                                         >
                                             <option value="">Select Nozzle</option>
-                                            {nozzles.map(nozzle => (
-                                                <option key={nozzle._id} value={nozzle._id}>
-                                                    {nozzle.nozzleId} - {nozzle.fueltype || nozzle.fuelType}
-                                                </option>
-                                            ))}
+                                            {nozzles
+                                                .filter(nozzle =>
+                                                    (nozzle.fuelType || nozzle.fueltype)?.toLowerCase() === saleForm.fuelType?.toLowerCase()
+                                                )
+                                                .map(nozzle => (
+                                                    <option key={nozzle._id} value={nozzle._id}>
+                                                        {nozzle.nozzleId} - {nozzle.fueltype || nozzle.fuelType}
+                                                    </option>
+                                                ))}
                                         </select>
                                     </div>
                                 )}
@@ -524,65 +594,90 @@ export default function Sales() {
                     <div className="space-y-6">
                         {/* Filters */}
                         <Card className="p-6">
-                            <h2 className="text-lg font-semibold text-slate-900 mb-4">Sales History</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                {/* Search */}
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                    <input
-                                        type="text"
-                                        placeholder="Search sales..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                    />
+                            <div className="flex items-center justify-between mb-4">
+                                <h2 className="text-lg font-semibold text-slate-900">Sales History</h2>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setShowFilters(!showFilters)}
+                                        className="flex items-center gap-2 px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                                    >
+                                        <Filter className="w-4 h-4" />
+                                        {showFilters ? 'Hide' : 'Show'} Filters
+                                    </button>
+                                    <button
+                                        onClick={handleExportCSV}
+                                        className="flex items-center gap-2 px-4 py-2 text-sm bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        Export CSV
+                                    </button>
                                 </div>
-
-                                {/* Date Filter */}
-                                <input
-                                    type="date"
-                                    value={dateFilter}
-                                    onChange={(e) => setDateFilter(e.target.value)}
-                                    className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                                />
-
-                                {/* Fuel Filter */}
-                                <select
-                                    value={fuelFilter}
-                                    onChange={(e) => setFuelFilter(e.target.value)}
-                                    className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
-                                >
-                                    <option value="all">All Fuels</option>
-                                    <option value="petrol">Petrol</option>
-                                    <option value="diesel">Diesel</option>
-                                    <option value="cng">CNG</option>
-                                </select>
-
-                                {/* Payment Filter */}
-                                <select
-                                    value={paymentFilter}
-                                    onChange={(e) => setPaymentFilter(e.target.value)}
-                                    className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
-                                >
-                                    <option value="all">All Payment Methods</option>
-                                    <option value="cash">Cash</option>
-                                    <option value="card">Card</option>
-                                    <option value="upi">UPI</option>
-                                    <option value="credit">Credit</option>
-                                    <option value="fleet">Fleet</option>
-                                </select>
                             </div>
 
-                            <div className="flex gap-2 mt-4">
-                                <button className="flex items-center gap-2 px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
-                                    <Filter className="w-4 h-4" />
-                                    Filter
-                                </button>
-                                <button className="flex items-center gap-2 px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
-                                    <Download className="w-4 h-4" />
-                                    Export
-                                </button>
-                            </div>
+                            {showFilters && (
+                                <>
+                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        {/* Search */}
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search sales..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                            />
+                                        </div>
+
+                                        {/* Date Filter */}
+                                        <input
+                                            type="date"
+                                            value={dateFilter}
+                                            onChange={(e) => setDateFilter(e.target.value)}
+                                            className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                                        />
+
+                                        {/* Fuel Filter */}
+                                        <select
+                                            value={fuelFilter}
+                                            onChange={(e) => setFuelFilter(e.target.value)}
+                                            className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
+                                        >
+                                            <option value="all">All Fuels</option>
+                                            <option value="petrol">Petrol</option>
+                                            <option value="diesel">Diesel</option>
+                                            <option value="cng">CNG</option>
+                                        </select>
+
+                                        {/* Payment Filter */}
+                                        <select
+                                            value={paymentFilter}
+                                            onChange={(e) => setPaymentFilter(e.target.value)}
+                                            className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white"
+                                        >
+                                            <option value="all">All Payment Methods</option>
+                                            <option value="cash">Cash</option>
+                                            <option value="card">Card</option>
+                                            <option value="upi">UPI</option>
+                                            <option value="credit">Credit</option>
+                                            <option value="fleet">Fleet</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex gap-2 mt-4">
+                                        <button
+                                            onClick={handleResetFilters}
+                                            className="flex items-center gap-2 px-4 py-2 text-sm border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors"
+                                        >
+                                            <X className="w-4 h-4" />
+                                            Reset Filters
+                                        </button>
+                                        <div className="text-sm text-slate-600 flex items-center">
+                                            Showing {filteredSales.length} of {sales.length} sales
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </Card>
 
                         {/* Sales Table */}

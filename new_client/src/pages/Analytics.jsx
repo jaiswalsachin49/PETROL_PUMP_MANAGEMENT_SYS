@@ -50,10 +50,15 @@ export default function Analytics() {
     return (
         <div className="flex-1 bg-slate-50 min-h-screen pb-10">
             <div className="px-8 py-6">
-                <div className="mb-6">
-                    <h1 className="text-2xl font-bold text-slate-900">Analytics Dashboard</h1>
-                    <p className="text-sm text-slate-600">Business insights and performance metrics</p>
-                </div>
+                <div className="flex items-center gap-4 mb-6">
+                        <div>
+                            <h1 className="text-slate-900 flex items-center gap-2">
+                                Analytics Dashboard
+                                <div className="size-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                            </h1>
+                            <p className="text-sm text-slate-600 mt-1">Business insights and performance metrics</p>
+                        </div>
+                    </div>
 
                 {/* Stats Cards */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">

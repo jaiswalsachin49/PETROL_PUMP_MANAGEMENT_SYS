@@ -164,11 +164,14 @@ export default function Inventory() {
             <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
                 <div className="px-8 py-6">
                     <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <h1 className="text-slate-900 flex items-center gap-2 text-2xl font-bold">
-                                Inventory Management
-                            </h1>
-                            <p className="text-sm text-slate-600 mt-1">Track spare parts and supplies</p>
+                        <div className="flex items-center gap-4">
+                            <div>
+                                <h1 className="text-slate-900 flex items-center gap-2">
+                                    Inventory Management
+                                    <div className="size-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                                </h1>
+                                <p className="text-sm text-slate-600 mt-1">Track spare parts and supplies</p>
+                            </div>
                         </div>
                         <button
                             onClick={() => setShowCreateModal(true)}

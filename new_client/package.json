@@ -12,9 +12,12 @@
   "dependencies": {
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
+    "@lottiefiles/dotlottie-react": "^0.17.8",
+    "@lottiefiles/lottie-player": "^2.0.12",
     "@mui/material": "^7.3.4",
     "@tailwindcss/vite": "^4.1.15",
     "axios": "^1.12.2",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^0.546.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",

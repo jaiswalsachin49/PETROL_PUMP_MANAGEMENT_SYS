@@ -83,9 +83,14 @@ export default function Reconciliation() {
             {/* Header */}
             <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
                 <div className="px-8 py-6">
-                    <div className="mb-6">
-                        <h1 className="text-2xl font-bold text-slate-900">Reconciliation</h1>
-                        <p className="text-sm text-slate-600">Daily reconciliation and variance analysis</p>
+                    <div className="flex items-center gap-4 mb-6">
+                        <div>
+                            <h1 className="text-slate-900 flex items-center gap-2">
+                                Reconciliation
+                                <div className="size-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                            </h1>
+                            <p className="text-sm text-slate-600 mt-1">Daily reconciliation and variance analysis</p>
+                        </div>
                     </div>
 
                     {/* Tabs */}
@@ -99,8 +104,8 @@ export default function Reconciliation() {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`px-4 py-2 rounded-lg font-medium transition-colors relative ${activeTab === tab.id
-                                        ? "bg-white text-slate-900 shadow-sm"
-                                        : "text-slate-600 hover:text-slate-900"
+                                        ? "bg-orange-100 text-orange-700 shadow-sm"
+                                        : "text-slate-600 hover:bg-slate-100"
                                     }`}
                             >
                                 {tab.label}

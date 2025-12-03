@@ -265,11 +265,11 @@ export default function Pumps() {
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
                             <div>
-                                <h1 className="text-slate-900 flex items-center gap-2 text-2xl font-bold">
+                                <h1 className="text-slate-900 flex items-center gap-2">
                                     Pump & Nozzle Management
                                     <div className="size-2 bg-emerald-500 rounded-full animate-pulse"></div>
                                 </h1>
-                                <p className="text-sm text-slate-600 mt-1">Monitor and maintain fuel pumps & nozzles</p>
+                                <p className="text-sm text-slate-600 mt-1">Monitor fuel pumps & nozzles</p>
                             </div>
                         </div>
                         <button

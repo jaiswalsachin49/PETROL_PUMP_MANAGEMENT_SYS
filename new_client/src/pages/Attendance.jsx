@@ -79,20 +79,55 @@ export default function Attendance() {
             const empRes = await employeeService.getAll();
             const totalEmps = empRes.data.data?.length || 0;
 
-            // If active shift exists, fetch its attendance to populate stats
-            if (active) {
-                const attRes = await attendanceService.getShiftAttendance(active._id);
-                const summary = attRes.data.data.summary;
+            // Get all shifts from today (to count employees present in ANY shift today)
+            const today = new Date();
+            const todayDateStr = today.toISOString().split('T')[0]; // YYYY-MM-DD
 
-                setSummaryStats({
-                    totalEmployees: totalEmps,
-                    presentToday: summary.present,
-                    absentToday: summary.absent,
-                    avgAttendance: totalEmps > 0 ? `${((summary.present / totalEmps) * 100).toFixed(1)}%` : "0%"
-                });
-            } else {
-                setSummaryStats(prev => ({ ...prev, totalEmployees: totalEmps }));
+            const todaysShifts = shiftsRes.data.data?.filter(s => {
+                const shiftDate = new Date(s.startTime);
+                const shiftDateStr = shiftDate.toISOString().split('T')[0];
+                return shiftDateStr === todayDateStr;
+            }) || [];
+
+
+            // Track unique employees present in ANY shift today
+            const employeesPresentToday = new Set();
+            const employeesAbsentToday = new Set();
+
+            // Fetch attendance for each shift today
+            for (const shift of todaysShifts) {
+                try {
+                    const attRes = await attendanceService.getShiftAttendance(shift._id);
+                    const attendance = attRes.data.data.attendance || [];
+
+                    attendance.forEach(record => {
+                        if (record.status === 'present') {
+                            employeesPresentToday.add(record._id);
+                        } else if (record.status === 'absent') {
+                            employeesAbsentToday.add(record._id);
+                        }
+                    });
+                } catch (err) {
+                    console.error(`Error fetching attendance for shift ${shift._id}:`, err);
+                }
             }
+
+
+            // Calculate stats based on all shifts today
+            const presentCount = employeesPresentToday.size;
+            const absentCount = Array.from(employeesAbsentToday).filter(
+                id => !employeesPresentToday.has(id)
+            ).length;
+
+            const calculatedStats = {
+                totalEmployees: totalEmps,
+                presentToday: presentCount,
+                absentToday: absentCount,
+                avgAttendance: totalEmps > 0 ? `${((presentCount / totalEmps) * 100).toFixed(1)}%` : "0%"
+            };
+
+
+            setSummaryStats(calculatedStats);
 
         } catch (error) {
             console.error("Error fetching initial data:", error);

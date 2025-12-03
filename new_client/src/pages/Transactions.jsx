@@ -166,11 +166,14 @@ export default function Transactions() {
             <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
                 <div className="px-8 py-6">
                     <div className="flex items-center justify-between mb-6">
-                        <div>
-                            <h1 className="text-slate-900 flex items-center gap-2 text-2xl font-bold">
-                                Transaction Management
-                            </h1>
-                            <p className="text-sm text-slate-600 mt-1">Track all financial transactions</p>
+                        <div className="flex items-center gap-4">
+                            <div>
+                                <h1 className="text-slate-900 flex items-center gap-2">
+                                    Transaction Management
+                                    <div className="size-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                                </h1>
+                                <p className="text-sm text-slate-600 mt-1">Track all financial transactions</p>
+                            </div>
                         </div>
                         <button
                             onClick={() => setShowCreateModal(true)}
@@ -218,28 +221,28 @@ export default function Transactions() {
                     <div className="flex gap-2 bg-slate-100 p-1 rounded-lg w-fit">
                         <button
                             onClick={() => setActiveTab("all")}
-                            className={`px - 4 py - 2 rounded - lg font - medium transition - colors ${activeTab === "all"
-                                    ? "bg-white text-slate-900 shadow-sm"
-                                    : "text-slate-600 hover:text-slate-900"
-                                } `}
+                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "all"
+                                ? "bg-orange-100 text-orange-700 shadow-sm"
+                                : "text-slate-600 hover:bg-slate-100"
+                                }`}
                         >
                             All Transactions
                         </button>
                         <button
                             onClick={() => setActiveTab("received")}
-                            className={`px - 4 py - 2 rounded - lg font - medium transition - colors ${activeTab === "received"
-                                    ? "bg-white text-slate-900 shadow-sm"
-                                    : "text-slate-600 hover:text-slate-900"
-                                } `}
+                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "received"
+                                    ? "bg-orange-100 text-orange-700 shadow-sm"
+                                    : "text-slate-600 hover:bg-slate-100"
+                                }`}
                         >
                             Payments Received
                         </button>
                         <button
                             onClick={() => setActiveTab("made")}
-                            className={`px - 4 py - 2 rounded - lg font - medium transition - colors ${activeTab === "made"
-                                    ? "bg-white text-slate-900 shadow-sm"
-                                    : "text-slate-600 hover:text-slate-900"
-                                } `}
+                            className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "made"
+                                    ? "bg-orange-100 text-orange-700 shadow-sm"
+                                    : "text-slate-600 hover:bg-slate-100"
+                                }`}
                         >
                             Payments Made
                         </button>
