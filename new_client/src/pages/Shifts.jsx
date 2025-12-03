@@ -58,13 +58,6 @@ export default function Shifts() {
         fetchTanks();
         fetchPumps();
         fetchEmployees();
-
-        // Poll for active shift updates every 30 seconds
-        const interval = setInterval(() => {
-            fetchShifts();
-        }, 30000);
-
-        return () => clearInterval(interval);
     }, []);
 
     const fetchShifts = async () => {
