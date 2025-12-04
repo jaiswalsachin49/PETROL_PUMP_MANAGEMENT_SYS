@@ -2,6 +2,10 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { organizationService } from "../services/organizationService";
 import { userService } from "../services/userService";
+import { saleService } from "../services/saleService";
+import { customerService } from "../services/customerService";
+import { inventoryService } from "../services/inventoryService";
+import { reportService } from "../services/reportService";
 import { toast } from "react-toastify";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { Card } from "../components/ui/Card";
@@ -205,6 +209,146 @@ export default function Settings() {
         return colors[role] || colors.employee;
     };
 
+    const handleExportData = async (dataType) => {
+        try {
+            setLoading(true);
+            let data = [];
+            let headers = [];
+            let fileName = "";
+
+            switch (dataType) {
+                case 'sales':
+                    const salesRes = await saleService.getAll();
+                    data = salesRes.data.data || [];
+                    fileName = "Sales_Data";
+                    headers = ["Sale ID", "Date", "Fuel Type", "Quantity (L)", "Price per Liter", "Total Amount", "Payment Method", "Customer"];
+
+                    const csvRows = [headers.join(",")];
+                    data.forEach(sale => {
+                        const row = [
+                            sale.saleId || '',
+                            new Date(sale.date).toLocaleDateString(),
+                            sale.fuelType || '',
+                            sale.quantity || 0,
+                            sale.pricePerLiter || 0,
+                            sale.totalAmount || 0,
+                            sale.saleType || '',
+                            sale.customerId?.name || 'N/A'
+                        ];
+                        csvRows.push(row.join(","));
+                    });
+
+                    downloadCSV(csvRows.join("\n"), fileName);
+                    toast.success(`Exported ${data.length} sales records`);
+                    break;
+
+                case 'customers':
+                    const cusRes = await customerService.getAll();
+                    data = cusRes.data.data || [];
+                    fileName = "Customer_Data";
+                    headers = ["Customer ID", "Name", "Phone", "Email", "Sale Type", "Credit Limit", "Outstanding Balance", "Company Name", "GST Number"];
+
+                    const cusRows = [headers.join(",")];
+                    data.forEach(customer => {
+                        const row = [
+                            customer.customerId || '',
+                            customer.name || '',
+                            customer.phone || '',
+                            customer.email || '',
+                            customer.saleType || '',
+                            customer.creditLimit || 0,
+                            customer.outstandingBalance || 0,
+                            customer.companyName || '',
+                            customer.gstNumber || ''
+                        ];
+
+                        const escapedRow = row.map(field => {
+                            const fieldStr = String(field);
+                            if (fieldStr.includes(',') || fieldStr.includes('"') || fieldStr.includes('\n')) {
+                                return `"${fieldStr.replace(/"/g, '""')}"`;
+                            }
+                            return fieldStr;
+                        });
+
+                        cusRows.push(escapedRow.join(","));
+                    });
+
+                    downloadCSV(cusRows.join("\n"), fileName);
+                    toast.success(`Exported ${data.length} customers`);
+                    break;
+
+                case 'inventory':
+                    const invRes = await inventoryService.getAll();
+                    data = invRes.data.data || [];
+                    fileName = "Inventory_Data";
+                    headers = ["Tank ID", "Fuel Type", "Capacity (L)", "Current Level (L)", "Available (%)", "Status"];
+
+                    const invRows = [headers.join(",")];
+                    data.forEach(tank => {
+                        const percentage = ((tank.currentLevel / tank.capacity) * 100).toFixed(2);
+                        const row = [
+                            tank.tankId || '',
+                            tank.fuelType || '',
+                            tank.capacity || 0,
+                            tank.currentLevel || 0,
+                            percentage,
+                            tank.status || ''
+                        ];
+                        invRows.push(row.join(","));
+                    });
+
+                    downloadCSV(invRows.join("\n"), fileName);
+                    toast.success(`Exported ${data.length} inventory items`);
+                    break;
+
+                case 'financial':
+                    const finRes = await reportService.getFinancialReport();
+                    const finData = finRes.data.data;
+                    fileName = "Financial_Report";
+
+                    const finRows = [];
+                    finRows.push("Metric,Amount");
+                    finRows.push(`Total Income,${finData.totalIncome || 0}`);
+                    finRows.push(`Total Expenses,${finData.totalExpenses || 0}`);
+                    finRows.push(`Net Profit,${finData.netProfit || 0}`);
+
+                    downloadCSV(finRows.join("\n"), fileName);
+                    toast.success("Exported financial report");
+                    break;
+
+                case 'all':
+                    toast.info("Exporting all data... This may take a moment");
+
+                    // Export all data types
+                    await handleExportData('sales');
+                    await handleExportData('customers');
+                    await handleExportData('inventory');
+                    await handleExportData('financial');
+
+                    toast.success("All data exported successfully!");
+                    break;
+
+                default:
+                    toast.error("Unknown export type");
+            }
+        } catch (error) {
+            console.error("Error exporting data:", error);
+            toast.error("Failed to export data");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const downloadCSV = (content, fileName) => {
+        const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `${fileName}_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
     return (
         <div className="flex-1 bg-slate-50 min-h-screen pb-10">
             <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
@@ -226,7 +370,7 @@ export default function Settings() {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${activeTab === tab.id
-                                    ? "bg-white text-slate-900 shadow-sm"
+                                    ? "bg-orange-100 text-orange-700 shadow-sm"
                                     : "text-slate-600 hover:text-slate-900"
                                     }`}
                             >
@@ -460,15 +604,6 @@ export default function Settings() {
                                             className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         />
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-slate-700 mb-1">Premium Rate (per Liter)</label>
-                                        <input
-                                            type="number"
-                                            value={fuelPrices.premium}
-                                            onChange={(e) => setFuelPrices({ ...fuelPrices, premium: parseFloat(e.target.value) })}
-                                            className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
                                     {organization?.fuelPricing?.lastUpdated && (
                                         <p className="text-xs text-slate-500">
                                             Last updated: {new Date(organization.fuelPricing.lastUpdated).toLocaleString()}
@@ -649,11 +784,18 @@ export default function Settings() {
                                 <p className="text-sm text-orange-900"><strong>Last Backup:</strong></p>
                                 <p className="text-sm text-orange-700">November 11, 2025 at 2:00 AM</p>
                             </div>
-                            <button className="w-full mb-3 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium transition-colors flex items-center justify-center gap-2">
+                            <button
+                                onClick={() => handleExportData('all')}
+                                disabled={loading}
+                                className="w-full mb-3 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                            >
                                 <Upload className="w-4 h-4" />
                                 Create Backup Now
                             </button>
-                            <button className="w-full px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 font-medium transition-colors">
+                            <button
+                                onClick={() => toast.info("Automatic backup scheduling requires backend configuration. Please contact your system administrator.")}
+                                className="w-full px-4 py-2 border border-slate-300 rounded-lg text-slate-700 hover:bg-slate-50 font-medium transition-colors"
+                            >
                                 Schedule Automatic Backup
                             </button>
                         </Card>
@@ -662,17 +804,19 @@ export default function Settings() {
                             <h3 className="text-lg font-semibold text-slate-900 mb-4">Export Data</h3>
                             <div className="space-y-3">
                                 {[
-                                    'Export Sales Data',
-                                    'Export Customer Data',
-                                    'Export Inventory Data',
-                                    'Export Financial Reports',
-                                    'Export All Data'
-                                ].map((label, idx) => (
+                                    { label: 'Export Sales Data', type: 'sales' },
+                                    { label: 'Export Customer Data', type: 'customers' },
+                                    { label: 'Export Inventory Data', type: 'inventory' },
+                                    { label: 'Export Financial Reports', type: 'financial' },
+                                    { label: 'Export All Data', type: 'all' }
+                                ].map((item, idx) => (
                                     <button
                                         key={idx}
-                                        className="w-full px-4 py-3 border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 font-medium transition-colors text-left flex items-center justify-between group"
+                                        onClick={() => handleExportData(item.type)}
+                                        disabled={loading}
+                                        className="w-full px-4 py-3 border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 font-medium transition-colors text-left flex items-center justify-between group disabled:opacity-50"
                                     >
-                                        {label}
+                                        {item.label}
                                         <Download className="w-4 h-4 text-slate-400 group-hover:text-slate-600" />
                                     </button>
                                 ))}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { reportService } from "../services/reportService";
 import LoadingSpinner from "../components/LoadingSpinner";
 import { Card } from "../components/ui/Card";
+import { toast } from 'react-toastify';
 import {
     FileText,
     Download,
@@ -80,6 +81,11 @@ export default function AnalyticsReports() {
     };
 
     const handleExportExcel = () => {
+        if (activeTab === 'sales' && !salesData.length) {
+            toast.error("No sales data to export");
+            return;
+        }
+
         let dataToExport = [];
         let fileName = "report";
 
@@ -98,6 +104,134 @@ export default function AnalyticsReports() {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Report");
         XLSX.writeFile(wb, `${fileName}_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+        toast.success(`Exported ${fileName} successfully!`);
+    };
+
+    const handleResetFilters = () => {
+        setDateRange({
+            from: new Date().toISOString().split('T')[0],
+            to: new Date().toISOString().split('T')[0]
+        });
+        setSelectedShift("All Shifts");
+        toast.success("Filters reset");
+    };
+
+    const handleExportCSV = () => {
+        if (activeTab === 'sales' && !salesData.length) {
+            toast.error("No sales data to export");
+            return;
+        }
+        if (activeTab === 'inventory' && !inventoryData.length) {
+            toast.error("No inventory data to export");
+            return;
+        }
+        if (activeTab === 'financial' && !financialData) {
+            toast.error("No financial data to export");
+            return;
+        }
+        let dataToExport = [];
+        let fileName = "report";
+        let headers = [];
+
+        if (activeTab === 'sales') {
+            if (!salesData.length) {
+                toast.error("No sales data to export");
+                return;
+            }
+            fileName = "Sales_Report";
+            headers = ["Date", "Shift", "Petrol (L)", "Diesel (L)", "Total (L)", "Revenue"];
+
+            const csvRows = [];
+            csvRows.push(headers.join(","));
+
+            salesData.forEach(row => {
+                const rowData = [
+                    row.date || '',
+                    row.shift || '',
+                    row.petrol || 0,
+                    row.diesel || 0,
+                    row.total || 0,
+                    row.revenue || 0
+                ];
+                csvRows.push(rowData.join(","));
+            });
+
+            // Add total row
+            const totalRow = [
+                "Total",
+                "",
+                salesData.reduce((sum, r) => sum + (r.petrol || 0), 0),
+                salesData.reduce((sum, r) => sum + (r.diesel || 0), 0),
+                salesData.reduce((sum, r) => sum + (r.total || 0), 0),
+                salesData.reduce((sum, r) => sum + (r.revenue || 0), 0)
+            ];
+            csvRows.push(totalRow.join(","));
+
+            const csvContent = csvRows.join("\n");
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `${fileName}_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+
+            toast.success(`Exported ${salesData.length} sales records to CSV`);
+        } else if (activeTab === 'inventory') {
+            if (!inventoryData.length) {
+                toast.error("No inventory data to export");
+                return;
+            }
+            fileName = "Inventory_Report";
+            headers = ["Item", "Opening Stock", "Purchases", "Sales", "Closing Stock"];
+
+            const csvRows = [];
+            csvRows.push(headers.join(","));
+
+            inventoryData.forEach(item => {
+                const rowData = [
+                    item.item || '',
+                    item.openingStock || 0,
+                    item.purchases || 0,
+                    item.sales || 0,
+                    item.closingStock || 0
+                ];
+                csvRows.push(rowData.join(","));
+            });
+
+            const csvContent = csvRows.join("\n");
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `${fileName}_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+
+            toast.success(`Exported ${inventoryData.length} inventory items to CSV`);
+        } else if (activeTab === 'financial' && financialData) {
+            fileName = "Financial_Report";
+
+            const csvRows = [];
+            csvRows.push("Metric,Amount");
+            csvRows.push(`Total Income,${financialData.totalIncome || 0}`);
+            csvRows.push(`Total Expenses,${financialData.totalExpenses || 0}`);
+            csvRows.push(`Net Profit,${financialData.netProfit || 0}`);
+
+            const csvContent = csvRows.join("\n");
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `${fileName}_${new Date().toISOString().split('T')[0]}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+
+            toast.success("Exported financial report to CSV");
+        } else {
+            toast.error("No data to export");
+        }
     };
 
     return (
@@ -126,9 +260,9 @@ export default function AnalyticsReports() {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === tab.id
-                                ? "bg-orange-100 text-orange-700 shadow-sm"
-                                : "text-slate-600 hover:bg-slate-100"
-                                }`}
+                                    ? "bg-orange-100 text-orange-700 shadow-sm"
+                                    : "text-slate-600 hover:bg-slate-100"
+                                    }`}
                             >
                                 {tab.label}
                             </button>
@@ -144,15 +278,21 @@ export default function AnalyticsReports() {
                         <div className="flex flex-col md:flex-row justify-between items-end md:items-center gap-4 mb-6">
                             <h3 className="text-lg font-semibold text-slate-900">Sales Report</h3>
                             <div className="flex gap-2">
-                                <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">
-                                    <Filter className="w-4 h-4" /> Filter
+                                <button
+                                    onClick={handleResetFilters}
+                                    className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+                                >
+                                    <Filter className="w-4 h-4" /> Reset Filters
                                 </button>
-                                <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50">
-                                    <Download className="w-4 h-4" /> Export PDF
+                                <button
+                                    onClick={handleExportCSV}
+                                    className="flex items-center gap-2 px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+                                >
+                                    <Download className="w-4 h-4" /> Export CSV
                                 </button>
                                 <button
                                     onClick={handleExportExcel}
-                                    className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+                                    className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
                                 >
                                     <FileText className="w-4 h-4" /> Export Excel
                                 </button>
@@ -213,7 +353,6 @@ export default function AnalyticsReports() {
                                             <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Shift</th>
                                             <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Petrol (L)</th>
                                             <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Diesel (L)</th>
-                                            <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Premium (L)</th>
                                             <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Total (L)</th>
                                             <th className="px-6 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Revenue</th>
                                         </tr>
@@ -226,14 +365,13 @@ export default function AnalyticsReports() {
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">{row.shift}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{row.petrol?.toLocaleString() || 0}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{row.diesel?.toLocaleString() || 0}</td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">{row.premium?.toLocaleString() || 0}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">{row.total?.toLocaleString() || 0}</td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-slate-900">₹{row.revenue?.toLocaleString() || 0}</td>
                                                 </tr>
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan="7" className="px-6 py-12 text-center text-slate-500">No data available for selected range</td>
+                                                <td colSpan="6" className="px-6 py-12 text-center text-slate-500">No data available for selected range</td>
                                             </tr>
                                         )}
                                         {/* Total Row */}
@@ -246,9 +384,6 @@ export default function AnalyticsReports() {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                                                     {salesData.reduce((sum, r) => sum + (r.diesel || 0), 0).toLocaleString()}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
-                                                    {salesData.reduce((sum, r) => sum + (r.premium || 0), 0).toLocaleString()}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
                                                     {salesData.reduce((sum, r) => sum + (r.total || 0), 0).toLocaleString()}
@@ -270,12 +405,20 @@ export default function AnalyticsReports() {
                     <div>
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-semibold text-slate-900">Financial Report</h3>
-                            <button
-                                onClick={handleExportExcel}
-                                className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
-                            >
-                                <Download className="w-4 h-4" /> Export
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleExportCSV}
+                                    className="flex items-center gap-2 px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+                                >
+                                    <Download className="w-4 h-4" /> Export CSV
+                                </button>
+                                <button
+                                    onClick={handleExportExcel}
+                                    className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+                                >
+                                    <FileText className="w-4 h-4" /> Export Excel
+                                </button>
+                            </div>
                         </div>
 
                         {loading ? (
@@ -323,12 +466,20 @@ export default function AnalyticsReports() {
                     <Card className="p-6">
                         <div className="flex justify-between items-center mb-6">
                             <h3 className="text-lg font-semibold text-slate-900">Inventory Report</h3>
-                            <button
-                                onClick={handleExportExcel}
-                                className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
-                            >
-                                <Download className="w-4 h-4" /> Export
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={handleExportCSV}
+                                    className="flex items-center gap-2 px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+                                >
+                                    <Download className="w-4 h-4" /> Export CSV
+                                </button>
+                                <button
+                                    onClick={handleExportExcel}
+                                    className="flex items-center gap-2 px-3 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50"
+                                >
+                                    <FileText className="w-4 h-4" /> Export Excel
+                                </button>
+                            </div>
                         </div>
 
                         <div className="overflow-x-auto">

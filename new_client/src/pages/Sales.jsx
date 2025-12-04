@@ -361,7 +361,6 @@ export default function Sales() {
                                     >
                                         <option value="petrol">Petrol</option>
                                         <option value="diesel">Diesel</option>
-                                        <option value="cng">CNG</option>
                                     </select>
                                 </div>
 
@@ -646,7 +645,6 @@ export default function Sales() {
                                             <option value="all">All Fuels</option>
                                             <option value="petrol">Petrol</option>
                                             <option value="diesel">Diesel</option>
-                                            <option value="cng">CNG</option>
                                         </select>
 
                                         {/* Payment Filter */}

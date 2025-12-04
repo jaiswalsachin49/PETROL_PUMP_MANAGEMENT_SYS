@@ -144,12 +144,84 @@ export default function Transactions() {
 
     const getPartyName = (txn) => {
         if (txn.customerId) {
-            return customers.find(c => c._id === txn.customerId)?.name || 'Unknown Customer';
+            // Check if customerId is populated (object) or just an ID (string)
+            if (typeof txn.customerId === 'object' && txn.customerId.name) {
+                return txn.customerId.name;
+            }
+            // If it's just an ID string, search in customers array
+            const customer = customers.find(c => c._id.toString() === txn.customerId.toString());
+            return customer?.name || 'Unknown Customer';
         }
         if (txn.supplierId) {
-            return suppliers.find(s => s._id === txn.supplierId)?.name || 'Unknown Supplier';
+            // Check if supplierId is populated (object) or just an ID (string)
+            if (typeof txn.supplierId === 'object' && txn.supplierId.name) {
+                return txn.supplierId.name;
+            }
+            // If it's just an ID string, search in suppliers array
+            const supplier = suppliers.find(s => s._id.toString() === txn.supplierId.toString());
+            return supplier?.name || 'Unknown Supplier';
         }
         return '-';
+    };
+
+    const handleResetFilters = () => {
+        setSearchTerm("");
+        setActiveTab("all");
+        toast.success("Filters reset");
+    };
+
+    const handleExportCSV = () => {
+        if (!filteredTransactions.length) {
+            toast.error("No transactions to export");
+            return;
+        }
+
+        const headers = [
+            "Transaction ID",
+            "Date",
+            "Type",
+            "Party",
+            "Amount",
+            "Payment Method",
+            "Description"
+        ];
+
+        const csvRows = [];
+        csvRows.push(headers.join(","));
+
+        filteredTransactions.forEach(txn => {
+            const row = [
+                txn.transactionId || '',
+                new Date(txn.date).toLocaleDateString(),
+                txn.type === 'payment_received' || txn.type === 'sale' ? 'Received' : 'Paid',
+                getPartyName(txn),
+                txn.amount || 0,
+                txn.paymentMethod || '',
+                txn.description || ''
+            ];
+
+            // Properly escape CSV fields
+            const escapedRow = row.map(field => {
+                const fieldStr = String(field);
+                if (fieldStr.includes(',') || fieldStr.includes('"') || fieldStr.includes('\n')) {
+                    return `"${fieldStr.replace(/"/g, '""')}"`;
+                }
+                return fieldStr;
+            });
+
+            csvRows.push(escapedRow.join(","));
+        });
+
+        const csvContent = csvRows.join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `transactions_export_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        toast.success(`Exported ${filteredTransactions.length} transactions to CSV`);
     };
 
     if (loading && !transactions.length) {
@@ -231,8 +303,8 @@ export default function Transactions() {
                         <button
                             onClick={() => setActiveTab("received")}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "received"
-                                    ? "bg-orange-100 text-orange-700 shadow-sm"
-                                    : "text-slate-600 hover:bg-slate-100"
+                                ? "bg-orange-100 text-orange-700 shadow-sm"
+                                : "text-slate-600 hover:bg-slate-100"
                                 }`}
                         >
                             Payments Received
@@ -240,8 +312,8 @@ export default function Transactions() {
                         <button
                             onClick={() => setActiveTab("made")}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === "made"
-                                    ? "bg-orange-100 text-orange-700 shadow-sm"
-                                    : "text-slate-600 hover:bg-slate-100"
+                                ? "bg-orange-100 text-orange-700 shadow-sm"
+                                : "text-slate-600 hover:bg-slate-100"
                                 }`}
                         >
                             Payments Made
@@ -264,13 +336,19 @@ export default function Transactions() {
                             />
                         </div>
                         <div className="flex gap-2">
-                            <button className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors">
+                            <button
+                                onClick={handleResetFilters}
+                                className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors"
+                            >
                                 <Filter className="w-4 h-4" />
-                                Filter
+                                Reset Filters
                             </button>
-                            <button className="flex items-center gap-2 px-3 py-2 bg-white border border-slate-300 rounded-lg text-slate-600 hover:bg-slate-50 transition-colors">
+                            <button
+                                onClick={handleExportCSV}
+                                className="flex items-center gap-2 px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+                            >
                                 <Download className="w-4 h-4" />
-                                Export
+                                Export CSV
                             </button>
                         </div>
                     </div>

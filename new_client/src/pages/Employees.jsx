@@ -253,11 +253,11 @@ export default function Employees() {
                             />
                         </div>
                         <div className="flex gap-3">
-                            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors">
+                            {/* <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors">
                                 <Filter className="w-4 h-4" />
                                 Filter
-                            </button>
-                            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors" onClick={heandleExportCSV}>
+                            </button> */}
+                            <button className="flex items-center gap-2 px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors" onClick={heandleExportCSV}>
                                 <Download className="w-4 h-4" />
                                 Export
                             </button>

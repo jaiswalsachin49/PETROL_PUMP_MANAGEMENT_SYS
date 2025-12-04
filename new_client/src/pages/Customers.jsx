@@ -176,11 +176,13 @@ export default function Customers() {
     const overdueCount = customers.filter(c => c.outstandingBalance > 0).length;
 
     const handleResetFilters = () => {
-
+        setSearchTerm("");
+        setActiveTab("all");
+        toast.success("Filters reset");
     };
 
     const handleExportCSV = () => {
-        if(!filteredCustomers.length){
+        if (!filteredCustomers.length) {
             toast.error("No customers to export");
             return;
         }
@@ -201,16 +203,25 @@ export default function Customers() {
 
         filteredCustomers.forEach(customer => {
             const row = [
-                customer.name,
-                customer.phone,
-                customer.email,
-                customer.saleType,
-                customer.creditLimit,
-                customer.companyName,
-                customer.gstNumber,
-                `${customer.address.street}, ${customer.address.city}, ${customer.address.state}, ${customer.address.zipCode}`
+                customer.name || '',
+                customer.phone || '',
+                customer.email || '',
+                customer.saleType || '',
+                customer.creditLimit || 0,
+                customer.companyName || '',
+                customer.gstNumber || '',
+                `${customer.address?.street || ''} ${customer.address?.city || ''} ${customer.address?.state || ''} ${customer.address?.zipCode || ''}`
             ];
-            csvRows.push(row.join(","));
+            // Properly escape CSV fields
+            const escapedRow = row.map(field => {
+                const fieldStr = String(field);
+                // If field contains comma, quote, or newline, wrap in quotes and escape internal quotes
+                if (fieldStr.includes(',') || fieldStr.includes('"') || fieldStr.includes('\n')) {
+                    return `"${fieldStr.replace(/"/g, '""')}`;
+                }
+                return fieldStr;
+            });
+            csvRows.push(escapedRow.join(","));
         });
 
         const csvString = csvRows.join("\n");
@@ -218,9 +229,11 @@ export default function Customers() {
         const url = URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.setAttribute("href", url);
-        link.setAttribute("download", "customers.csv");
+        link.setAttribute("download", `customers_export_${new Date().toISOString().split('T')[0]}.csv`);
         link.click();
         URL.revokeObjectURL(url);
+
+        toast.success(`Exported ${filteredCustomers.length} customers to CSV`);
     };
 
     if (loading && !customers.length) {
@@ -306,13 +319,19 @@ export default function Customers() {
                         />
                     </div>
                     <div className="flex gap-3">
-                        <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors">
+                        <button
+                            onClick={handleResetFilters}
+                            className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors"
+                        >
                             <Filter className="w-4 h-4" />
-                            Filter
+                            Reset Filters
                         </button>
-                        <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors" onClick={handleExportCSV}>
+                        <button
+                            onClick={handleExportCSV}
+                            className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+                        >
                             <Download className="w-4 h-4" />
-                            Export
+                            Export CSV
                         </button>
                     </div>
                 </div>

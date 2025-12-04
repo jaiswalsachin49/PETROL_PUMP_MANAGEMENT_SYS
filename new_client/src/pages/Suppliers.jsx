@@ -24,7 +24,9 @@ export default function Suppliers() {
     const [searchTerm, setSearchTerm] = useState("");
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedSupplier, setSelectedSupplier] = useState(null);
+    const [supplierToDelete, setSupplierToDelete] = useState(null);
 
     const [formData, setFormData] = useState({
         name: "",
@@ -85,6 +87,31 @@ export default function Suppliers() {
             console.error("Error updating supplier:", error);
             toast.error(error.response?.data?.message || "Error updating supplier");
         }
+    };
+
+    const handleDelete = (supplier) => {
+        setSupplierToDelete(supplier);
+        setShowDeleteModal(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!supplierToDelete) return;
+
+        try {
+            await supplierService.delete(supplierToDelete._id);
+            setShowDeleteModal(false);
+            setSupplierToDelete(null);
+            fetchSuppliers();
+            toast.success("Supplier deleted successfully!");
+        } catch (error) {
+            console.error("Error deleting supplier:", error);
+            toast.error(error.response?.data?.message || "Error deleting supplier");
+        }
+    };
+
+    const handleResetFilters = () => {
+        setSearchTerm("");
+        toast.success("Filters reset");
     };
 
     const openEditModal = (supplier) => {
@@ -150,12 +177,13 @@ export default function Suppliers() {
         }
     };
 
-    const handleExportCSV =()=>{
-        if(!suppliers.length){
+    const handleExportCSV = () => {
+        if (!filteredSuppliers.length) {
             toast.error("No suppliers to export");
             return;
         }
-        const header = [ 
+
+        const headers = [
             "Supplier ID",
             "Name",
             "Company Name",
@@ -165,31 +193,46 @@ export default function Suppliers() {
             "GST Number",
             "Payment Terms",
             "Is Active"
-        ]
-        const csvRows = []
-        csvRows.push(header.join(","))
-        suppliers.forEach(supplier => {
+        ];
+
+        const csvRows = [];
+        csvRows.push(headers.join(","));
+
+        filteredSuppliers.forEach(supplier => {
             const row = [
-                supplier.supplierId,
-                supplier.name,
-                supplier.companyName,
-                supplier.email,
-                supplier.phone,
-                supplier.supplierType,
-                supplier.gstNumber,
-                supplier.paymentTerms,
-                supplier.isActive
-            ]
-            csvRows.push(row.join(","))
-        })
-        const csvContent = csvRows.join("\n")
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement("a")
-        link.href = url
-        link.download = "suppliers.csv"
-        link.click()
-        URL.revokeObjectURL(url)
+                supplier.supplierId || '',
+                supplier.name || '',
+                supplier.companyName || '',
+                supplier.email || '',
+                supplier.phone || '',
+                supplier.supplierType || '',
+                supplier.gstNumber || '',
+                supplier.paymentTerms || '',
+                supplier.isActive ? 'Yes' : 'No'
+            ];
+
+            // Properly escape CSV fields
+            const escapedRow = row.map(field => {
+                const fieldStr = String(field);
+                if (fieldStr.includes(',') || fieldStr.includes('"') || fieldStr.includes('\n')) {
+                    return `"${fieldStr.replace(/"/g, '""')}"`;
+                }
+                return fieldStr;
+            });
+
+            csvRows.push(escapedRow.join(","));
+        });
+
+        const csvContent = csvRows.join("\n");
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `suppliers_export_${new Date().toISOString().split('T')[0]}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+
+        toast.success(`Exported ${filteredSuppliers.length} suppliers to CSV`);
     }
 
     if (loading && !suppliers.length) {
@@ -237,13 +280,16 @@ export default function Suppliers() {
                             />
                         </div>
                         <div className="flex gap-3">
-                            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors">
+                            <button
+                                onClick={handleResetFilters}
+                                className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors"
+                            >
                                 <Filter className="w-4 h-4" />
-                                Filter
+                                Reset Filters
                             </button>
-                            <button className="flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 font-medium transition-colors" onClick={handleExportCSV}>
+                            <button className="flex items-center gap-2 px-3 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors" onClick={handleExportCSV}>
                                 <Download className="w-4 h-4" />
-                                Export
+                                Export CSV
                             </button>
                         </div>
                     </div>
@@ -295,10 +341,13 @@ export default function Suppliers() {
                                                     onClick={() => openEditModal(supplier)}
                                                     className="text-slate-600 hover:text-orange-600 transition-colors mr-3"
                                                 >
-                                                    Edit
+                                                    <Edit className="w-4 h-4 inline" />
                                                 </button>
-                                                <button className="text-slate-400 hover:text-orange-600 transition-colors">
-                                                    View
+                                                <button
+                                                    onClick={() => handleDelete(supplier)}
+                                                    className="text-slate-400 hover:text-red-600 transition-colors"
+                                                >
+                                                    <Trash2 className="w-4 h-4 inline" />
                                                 </button>
                                             </td>
                                         </tr>
@@ -494,6 +543,48 @@ export default function Suppliers() {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteModal && supplierToDelete && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+                        <div className="px-6 py-4 border-b border-slate-100 bg-red-50">
+                            <h3 className="text-lg font-semibold text-red-900">Delete Supplier</h3>
+                        </div>
+
+                        <div className="p-6">
+                            <p className="text-slate-700 mb-2">
+                                Are you sure you want to delete this supplier?
+                            </p>
+                            <div className="bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                <p className="font-semibold text-slate-900">{supplierToDelete.companyName || supplierToDelete.name}</p>
+                                <p className="text-sm text-slate-600">ID: {supplierToDelete.supplierId}</p>
+                            </div>
+                            <p className="text-sm text-red-600 mt-4">
+                                ⚠️ This action cannot be undone.
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3 px-6 py-4 bg-slate-50 border-t border-slate-100">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteModal(false);
+                                    setSupplierToDelete(null);
+                                }}
+                                className="flex-1 px-4 py-2 border border-slate-300 text-slate-700 rounded-lg hover:bg-white font-medium transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={confirmDelete}
+                                className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors shadow-sm"
+                            >
+                                Delete Supplier
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

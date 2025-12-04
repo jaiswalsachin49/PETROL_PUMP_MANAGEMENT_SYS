@@ -142,7 +142,7 @@ export default function Shifts() {
             const localDate = new Date(closeForm.endTime);
             const isoEndTime = localDate.toISOString();
 
-            await shiftService.close(selectedShift._id, {
+            await shiftService.closeShift(selectedShift._id, {
                 ...closeForm,
                 endTime: isoEndTime
             });
