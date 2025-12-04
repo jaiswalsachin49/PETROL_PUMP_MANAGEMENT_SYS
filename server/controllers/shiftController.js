@@ -553,7 +553,7 @@ const getShiftSummary = async (req, res) => {
             return {
                 ...reading.toObject(),
                 expectedClosingReading: reading.openingReading - volumeSold,
-                closingReading: reading.openingReading - volumeSold // Default to expected
+                closingReading: reading.openingReading - volumeSold, // Default to expected
             };
         });
 

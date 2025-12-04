@@ -115,10 +115,29 @@ const getEmployeeAttendance = async (req, res) => {
             });
         }
 
-        const totalDays = attendance.length;
-        const presentDays = attendance.filter(att => att.status === 'present').length;
-        const absentDays = attendance.filter(att => att.status === 'absent').length;
-        const leaveDays = attendance.filter(att => att.status === 'leave').length;
+        // Group attendance by unique dates (employees can work multiple shifts per day)
+        const attendanceByDate = {};
+        attendance.forEach(att => {
+            const dateKey = new Date(att.date).toISOString().split('T')[0]; // YYYY-MM-DD
+
+            if (!attendanceByDate[dateKey]) {
+                attendanceByDate[dateKey] = [];
+            }
+            attendanceByDate[dateKey].push(att.status);
+        });
+
+        // For each day, determine the "best" status (present > leave > absent)
+        const statusPriority = { 'present': 3, 'leave': 2, 'absent': 1, 'holiday': 0 };
+        const dailyStatuses = Object.values(attendanceByDate).map(statuses => {
+            return statuses.reduce((best, current) => {
+                return (statusPriority[current] || 0) > (statusPriority[best] || 0) ? current : best;
+            });
+        });
+
+        const totalDays = dailyStatuses.length;
+        const presentDays = dailyStatuses.filter(status => status === 'present').length;
+        const absentDays = dailyStatuses.filter(status => status === 'absent').length;
+        const leaveDays = dailyStatuses.filter(status => status === 'leave').length;
         const attendancePercentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(2) : 0;
 
         res.json({
@@ -239,10 +258,29 @@ const getMonthlyAttendanceSummary = async (req, res) => {
                     attDate.getFullYear() === parseInt(year);
             });
 
-            const totalDays = monthlyAttendance.length;
-            const presentDays = monthlyAttendance.filter(att => att.status === 'present').length;
-            const absentDays = monthlyAttendance.filter(att => att.status === 'absent').length;
-            const leaveDays = monthlyAttendance.filter(att => att.status === 'leave').length;
+            // Group attendance by unique dates (employees can work multiple shifts per day)
+            const attendanceByDate = {};
+            monthlyAttendance.forEach(att => {
+                const dateKey = new Date(att.date).toISOString().split('T')[0]; // YYYY-MM-DD
+
+                if (!attendanceByDate[dateKey]) {
+                    attendanceByDate[dateKey] = [];
+                }
+                attendanceByDate[dateKey].push(att.status);
+            });
+
+            // For each day, determine the "best" status (present > leave > absent)
+            const statusPriority = { 'present': 3, 'leave': 2, 'absent': 1, 'holiday': 0 };
+            const dailyStatuses = Object.values(attendanceByDate).map(statuses => {
+                return statuses.reduce((best, current) => {
+                    return (statusPriority[current] || 0) > (statusPriority[best] || 0) ? current : best;
+                });
+            });
+
+            const totalDays = dailyStatuses.length;
+            const presentDays = dailyStatuses.filter(status => status === 'present').length;
+            const absentDays = dailyStatuses.filter(status => status === 'absent').length;
+            const leaveDays = dailyStatuses.filter(status => status === 'leave').length;
             const attendancePercentage = totalDays > 0 ? ((presentDays / totalDays) * 100).toFixed(2) : 0;
 
             return {

@@ -1100,6 +1100,8 @@ const getSalesReport = async (req, res) => {
 
         const pipeline = [
             { $match: matchStage },
+
+            // Lookup the shift doc
             {
                 $lookup: {
                     from: 'shifts',
@@ -1109,9 +1111,21 @@ const getSalesReport = async (req, res) => {
                 }
             },
             { $unwind: '$shiftDetails' },
+
+            // Extract hour in Asia/Kolkata (two-step to access .hour)
             {
                 $addFields: {
-                    shiftHour: { $hour: '$shiftDetails.startTime' }
+                    _startParts: {
+                        $dateToParts: {
+                            date: '$shiftDetails.startTime',
+                            timezone: 'Asia/Kolkata'
+                        }
+                    }
+                }
+            },
+            {
+                $addFields: {
+                    shiftHour: '$_startParts.hour'
                 }
             },
             {
@@ -1119,22 +1133,34 @@ const getSalesReport = async (req, res) => {
                     shiftName: {
                         $switch: {
                             branches: [
-                                { case: { $and: [{ $gte: ['$shiftHour', 6] }, { $lt: ['$shiftHour', 14] }] }, then: 'Morning' },
-                                { case: { $and: [{ $gte: ['$shiftHour', 14] }, { $lt: ['$shiftHour', 22] }] }, then: 'Evening' }
+                                {
+                                    // Morning: 09:00 (incl) -> 21:00 (excl)
+                                    case: {
+                                        $and: [
+                                            { $gte: ['$shiftHour', 9] },
+                                            { $lt: ['$shiftHour', 21] }
+                                        ]
+                                    },
+                                    then: 'Morning'
+                                }
                             ],
+                            // Everything else -> Night (21:00 -> 09:00)
                             default: 'Night'
                         }
                     }
                 }
-            }
+            },
+
+            // optional: remove temporary field
+            { $project: { _startParts: 0 /* remove helper */ } }
         ];
 
+        // If user filtered by shift (Morning/Night), apply after shiftName computed
         if (shift && shift !== 'All Shifts') {
-            pipeline.push({
-                $match: { shiftName: shift }
-            });
+            pipeline.push({ $match: { shiftName: shift } });
         }
 
+        // Group and aggregate
         pipeline.push(
             {
                 $group: {
@@ -1184,6 +1210,7 @@ const getSalesReport = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
 
 // @desc    Get financial report (Income vs Expense)
 // @route   GET /api/reports/financial-report
@@ -1318,13 +1345,85 @@ const getAnalyticsDashboard = async (req, res) => {
         const lastCount = lastMonthSales[0]?.count || 1;
 
         // Calculate avg daily sales
-        const daysInCurrentMonth = new Date().getDate();
+        const daysInCurrentMonth = new Date().getDate(); // Days elapsed so far this month
         const avgDailySales = Math.round(currentTotal / daysInCurrentMonth);
-        const avgDailySalesChange = lastTotal > 0 ? (((currentTotal / daysInCurrentMonth) - (lastTotal / 30)) / (lastTotal / 30) * 100).toFixed(1) : 0;
 
-        // Profit margin (mock calculation - would need cost data)
-        const profitMargin = 36.7;
-        const profitMarginChange = 2.3;
+        // Calculate actual days in last month for accurate comparison
+        const lastMonthStart = new Date(currentMonth);
+        lastMonthStart.setMonth(lastMonthStart.getMonth() - 1);
+        const lastMonthEnd = new Date(currentMonth);
+        const daysInLastMonth = Math.floor((lastMonthEnd - lastMonthStart) / (1000 * 60 * 60 * 24));
+
+        const avgDailySalesChange = lastTotal > 0 ? (((currentTotal / daysInCurrentMonth) - (lastTotal / daysInLastMonth)) / (lastTotal / daysInLastMonth) * 100).toFixed(1) : 0;
+
+
+        // --- PROFIT MARGIN CALCULATION ---
+
+        // 1. Get average purchase price for each fuel type
+        // We'll use the weighted average of all purchases to get a realistic cost price
+        const purchaseStats = await Purchase.aggregate([
+            { $unwind: "$items" },
+            {
+                $group: {
+                    _id: { $toLower: "$items.itemName" }, // Group by fuel type (petrol, diesel, etc.)
+                    totalQuantity: { $sum: "$items.quantity" },
+                    totalCost: { $sum: "$items.totalPrice" }
+                }
+            }
+        ]);
+
+        const costMap = {};
+        purchaseStats.forEach(stat => {
+            if (stat.totalQuantity > 0) {
+                // Calculate weighted average cost per liter
+                costMap[stat._id] = stat.totalCost / stat.totalQuantity;
+            }
+        });
+
+        // Default costs if no purchases found (fallback to avoid division by zero)
+        // These are estimated market rates if no data exists
+        // Adjusted to ensure positive margin against default selling price of ~95
+        if (!costMap['petrol']) costMap['petrol'] = 90.00;
+        if (!costMap['diesel']) costMap['diesel'] = 82.00;
+        if (!costMap['cng']) costMap['cng'] = 70.00;
+
+        // 2. Calculate Cost of Goods Sold (COGS) for current month sales
+        const currentMonthSalesDetails = await Sale.find({ date: { $gte: currentMonth } }).select('fuelType quantity totalAmount');
+
+        let totalRevenue = 0;
+        let totalCOGS = 0;
+
+        currentMonthSalesDetails.forEach(sale => {
+            const fuelType = sale.fuelType.toLowerCase();
+            const costPrice = costMap[fuelType] || 0;
+
+            totalRevenue += sale.totalAmount;
+            totalCOGS += (sale.quantity * costPrice);
+        });
+
+        // 3. Calculate Profit Margin
+        const totalProfit = totalRevenue - totalCOGS;
+        const profitMargin = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0;
+
+
+        // 4. Calculate Last Month's Profit Margin for comparison
+        const lastMonthSalesDetails = await Sale.find({ date: { $gte: lastMonth, $lt: currentMonth } }).select('fuelType quantity totalAmount');
+        let lastMonthRevenue = 0;
+        let lastMonthCOGS = 0;
+
+        lastMonthSalesDetails.forEach(sale => {
+            const fuelType = sale.fuelType.toLowerCase();
+            const costPrice = costMap[fuelType] || 0;
+
+            lastMonthRevenue += sale.totalAmount;
+            lastMonthCOGS += (sale.quantity * costPrice);
+        });
+
+        const lastMonthProfit = lastMonthRevenue - lastMonthCOGS;
+        const lastMonthMargin = lastMonthRevenue > 0 ? ((lastMonthProfit / lastMonthRevenue) * 100).toFixed(1) : 0;
+
+        const profitMarginChange = (profitMargin - lastMonthMargin).toFixed(1);
+
 
         // Active customers (those who made purchases this month)
         const activeCustomers = await Customer.countDocuments({
@@ -1350,17 +1449,30 @@ const getAnalyticsDashboard = async (req, res) => {
             {
                 $group: {
                     _id: { $dateToString: { format: "%Y-%m", date: "$date" } },
-                    sales: { $sum: "$totalAmount" }
+                    sales: { $sum: "$totalAmount" },
+                    details: { $push: { fuelType: "$fuelType", quantity: "$quantity" } }
                 }
             },
             { $sort: { "_id": 1 } }
         ]);
 
-        const revenueTrend = monthlyData.map(item => ({
-            name: new Date(item._id + "-01").toLocaleString('default', { month: 'short' }),
-            sales: item.sales,
-            profit: Math.round(item.sales * 0.367) // Mock profit calculation
-        }));
+        const revenueTrend = monthlyData.map(item => {
+            // Calculate profit for this month
+            let monthCOGS = 0;
+            item.details.forEach(detail => {
+                const fuelType = detail.fuelType ? detail.fuelType.toLowerCase() : 'petrol';
+                const costPrice = costMap[fuelType] || 0;
+                monthCOGS += (detail.quantity * costPrice);
+            });
+
+            const monthProfit = item.sales - monthCOGS;
+
+            return {
+                name: new Date(item._id + "-01").toLocaleString('default', { month: 'short' }),
+                sales: item.sales,
+                profit: Math.round(monthProfit)
+            };
+        });
 
         // Fuel Type Performance
         const fuelPerformance = await Sale.aggregate([
@@ -1421,7 +1533,7 @@ const getAnalyticsDashboard = async (req, res) => {
                     },
                     profitMargin: {
                         value: profitMargin,
-                        change: profitMarginChange
+                        change: parseFloat(profitMarginChange)
                     },
                     activeCustomers: {
                         value: activeCustomers,
@@ -1437,9 +1549,9 @@ const getAnalyticsDashboard = async (req, res) => {
                 topCustomers,
                 comparisons: {
                     salesGrowth: parseFloat(salesGrowth),
-                    customerAcquisition: 5.5,
-                    avgTransactionValue: -5.2,
-                    profitMarginChange: 2.3
+                    customerAcquisition: parseFloat(activeCustomersChange),
+                    avgTransactionValue: parseFloat(avgTransactionChange),
+                    profitMarginChange: parseFloat(profitMarginChange)
                 }
             }
         });

@@ -24,9 +24,10 @@ const customerSchema = new mongoose.Schema({
     email: {
         type: String,
         unique: true,
+        sparse: true,
         trim: true,
         lowercase: true,
-        sparse: true, // Allow multiple null/undefined values
+        set: v => v === "" ? null : v
     },
     phone: {
         type: String,
