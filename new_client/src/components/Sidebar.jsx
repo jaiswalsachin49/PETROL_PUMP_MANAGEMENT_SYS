@@ -125,6 +125,7 @@ export default function Sidebar({ onLogout }) {
                             FuelFlow
                         </h1>
                         <p className="text-xs text-slate-400 font-medium">{user?.role?.toUpperCase()}</p>
+                        <p className="text-xs text-slate-400 font-medium">Build by Sachin</p>
                     </div>
                 </div>
             </div>
