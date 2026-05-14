@@ -129,7 +129,6 @@ export default function Sidebar({ onLogout }) {
                     </div>
                 </div>
             </div>
-
             {/* Navigation */}
             <nav className="flex-1 overflow-y-auto py-4 px-3 custom-scrollbar">
                 <div className="space-y-1">
